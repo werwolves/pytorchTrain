@@ -116,6 +116,7 @@ class Trainer:
             torch.save(self.model.state_dict(), os.path.join(self.model_save_dir, "best_epoch_weights.pth"))
             torch.save(self.model.state_dict(), os.path.join(self.model_save_dir, f"best_epoch_weights_epoch:{cur_epoch+1}_val_loss:{cur_val_loss}_.pth"))
         return cur_train_loss, cur_val_loss
+    
     def train(self, train_loader, epoch):
         self.model.train()
         total_loss = 0.0

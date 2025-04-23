@@ -53,7 +53,13 @@ class LossHistory():
                 num = 5
             else:
                 num = 15
+            """
+            scipy.signal.savgol_filter(self.losses, 
+                                      num,  # 5, # 窗口长度，决定了平滑的程度（一定为奇数）---> 平滑程度越高，较大的窗口会更平滑，但可能会丢失一些细节
+                                      3     # 多项式的阶数，决定了平滑的程度（必须小于窗口长度）---> 阶数越高，拟合的曲线越复杂，可能会过拟合
+                                      )
             
+            """
             plt.plot(iters, scipy.signal.savgol_filter(self.losses, num, 3), 'green', linestyle = '--', linewidth = 2, label='smooth train loss')
             plt.plot(iters, scipy.signal.savgol_filter(self.val_loss, num, 3), '#8B4513', linestyle = '--', linewidth = 2, label='smooth val loss')
         except:
