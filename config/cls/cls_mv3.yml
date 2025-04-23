@@ -30,3 +30,48 @@ Optimizer:
 PostProcess:
   name: Cls
   topk: 5
+
+
+Train:
+  dataset:
+    name: SimpleDataSet
+    data_dir: ./train_data/cls
+    label_file_list:
+      - ./train_data/cls/train_list.txt
+    transforms:
+      - DecodeImage:
+          img_mode: BGR
+          channel_first: False
+      - ClsLabelEncode: 
+      - BaseDataAugmentation:
+      - RandAugment:
+      - ClsResizeImg:
+          image_shape: [3, 48, 192]
+      - KeepKeys:
+          keep_keys: ['image', 'label'] # dataloader will return list in this order
+  loader:
+    shuffle: True
+    drop_last: True
+    batch_size: 64
+    num_workers: 0
+
+Eval:
+  dataset:
+    name: SimpleDataSet
+    data_dir: ./train_data/cls
+    label_file_list:
+      -./train_data/cls/val_list.txt
+    transforms:
+      - DecodeImage: # load image
+          img_mode: BGR
+          channel_first: False
+      - ClsLabelEncode: # Class handling label
+      - ClsResizeImg:
+          image_shape: [3, 48, 192]
+      - KeepKeys:
+          keep_keys: ['image', 'label'] # dataloader will return list in this order
+  loader:
+    shuffle: False
+    drop_last: False
+    batch_size_per_card: 512
+    num_workers: 0
