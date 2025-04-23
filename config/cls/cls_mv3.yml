@@ -1,0 +1,32 @@
+Global:
+  epoch_num: 200
+  output_dir: ./output/cls_mv3
+  batch_size: 64
+  image_shape: [3, 224, 224]
+  pretrained: 
+
+Architecture:
+  backbone: 
+    name: MobileNetV3
+    model_name: large
+    class_num: 2
+  Neck:
+  Head:
+
+Loss:
+  name: CrossEntropyLoss
+  class_num: 2
+  label_smooth: 0.1
+
+Optimizer:
+  name: Adam
+  beta1: 0.9
+  beta2: 0.999
+  lr:
+    name: Cosine
+    learning_rate: 0.001
+    warmup_epoch: 5
+
+PostProcess:
+  name: Cls
+  topk: 5
