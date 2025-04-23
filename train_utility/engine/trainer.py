@@ -3,6 +3,7 @@ import torch, os
 import torch.nn as nn
 from tqdm import tqdm
 from train_utility.modeling.architectures import build_model
+from train_utility.data import build_dataset
 from train_utility.engine.callbacks import LossHistory
 
 __all__ = ['Trainer']
@@ -11,7 +12,10 @@ __all__ = ['Trainer']
 class Trainer:
     def __init__(self, config):
         self.model = build_model(config['Architecture'])
-        self.train_data_loader = config.get('train_data_loader', None) 
+        # self.train_data_loader = config.get('train_data_loader', None) 
+        self.train_data_loader = build_dataset(config, 'Train', None)  # 这里的config是一个字典类型的配置参数
+        self.val_data_loader = build_dataset(config, 'Eval', None)
+        
         self.val_data_loader = config.get('val_data_loader', None) 
         self.loss_fn = config.get('loss', None)
         self.optimizer = config.get('optimizer', None)
