@@ -1,0 +1,1 @@
+python tools/train.py --config config/cls/cls_mv3.yml

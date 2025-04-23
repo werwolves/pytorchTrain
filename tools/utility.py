@@ -1,6 +1,6 @@
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
-import yaml
+import yaml, os
 
 class ArgsParser(ArgumentParser):
     def __init__(self):
@@ -40,12 +40,63 @@ class ArgsParser(ArgumentParser):
         return config
 
 
+class Config(object):
+    def __init__(self, config_path, BASE_KEY='_BASE_'):
+        self.BASE_KEY = BASE_KEY
+        self.cfg = self._load_config_with_base(config_path)
 
+    def _load_config_with_base(self, file_path):
+        """
+               Load config from file.
 
+               Args:
+                   file_path (str): Path of the config file to be loaded.
 
+               Returns: global config
+               """
+        _, ext = os.path.splitext(file_path)
+        assert ext in ['.yml', '.yaml'], "only support yaml files for now"
 
+        with open(file_path) as f:
+            file_cfg = yaml.load(f, Loader=yaml.Loader)
 
+        # NOTE: cfgs outside have higher priority than cfgs in _BASE_
+        if self.BASE_KEY in file_cfg:
+            all_base_cfg = AttrDict()
+            base_ymls = list(file_cfg[self.BASE_KEY])
+            for base_yml in base_ymls:
+                if base_yml.startswith("~"):
+                    base_yml = os.path.expanduser(base_yml)
+                if not base_yml.startswith('/'):
+                    base_yml = os.path.join(
+                        os.path.dirname(file_path), base_yml)
 
+                with open(base_yml) as f:
+                    base_cfg = self._load_config_with_base(base_yml)
+                    all_base_cfg = _merge_dict(all_base_cfg, base_cfg)
+
+            del file_cfg[self.BASE_KEY]
+            file_cfg = _merge_dict(all_base_cfg, file_cfg)
+        return file_cfg
+
+    def merge_dict(self, args):
+        self.cfg = _merge_dict(self.cfg, args)
+
+    def print_cfg(self, print_func=print):
+        """
+        Recursively visualize a dict and
+        indenting acrrording by the relationship of keys.
+        """
+        print_func('----------- Config -----------')
+        print_dict(self.cfg, print_func)
+        print_func('---------------------------------------------')
+
+    def save(self, p, cfg=None):
+        if cfg is None:
+            cfg = self.cfg
+        with open(p, 'w') as f:
+            yaml.dump(
+                dict(cfg), f, default_flow_style=False, sort_keys=False)
 
 
 
