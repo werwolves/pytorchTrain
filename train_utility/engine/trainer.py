@@ -3,15 +3,14 @@ import torch, os
 import torch.nn as nn
 from tqdm import tqdm
 from train_utility.modeling.architectures import build_model
-
+from train_utility.engine.callbacks import LossHistory
 
 __all__ = ['Trainer']
 
 
 class Trainer:
-    def __init__(self, model, **config):
-        self.model = config.get('model',None) 
-        self.model = build_model(self.cfg['Architecture'])
+    def __init__(self, config):
+        self.model = build_model(config['Architecture'])
         self.train_data_loader = config.get('train_data_loader', None) 
         self.val_data_loader = config.get('val_data_loader', None) 
         self.loss_fn = config.get('loss', None)
@@ -23,13 +22,14 @@ class Trainer:
         # 在训练的过程中是否采用梯度裁剪
         self.is_clip_grad = config.get('is_clip_grad', False)
         # 保存模型的路径
-        self.model_save_dir = config.get('model_save_dir', None)
+        self.model_save_dir = config["Global"].get('output_dir', None)
         # 训练模型所使用的设备
         self.device = config.get('device', None)
         # 记录训练过程的
-        self.loss_history = config.get('loss_history', None)
+        # self.loss_history = config.get('loss_history', None)
+        self.loss_history = LossHistory(self.model_save_dir, self.model, config['Global']['image_shape'][1:])
         
-        assert self.check_attribute(), "模型训练所需的参数未设置完整！"
+        # assert self.check_attribute(), "模型训练所需的参数未设置完整！"
         self.model.to(self.device)  # 将模型移动到指定设备上
         
         

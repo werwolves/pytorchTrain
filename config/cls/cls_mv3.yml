@@ -6,7 +6,7 @@ Global:
   pretrained: 
 
 Architecture:
-  backbone: 
+  Backbone: 
     name: MobileNetV3
     model_name: large
     class_num: 2

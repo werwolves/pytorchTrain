@@ -12,10 +12,10 @@
             "program": "tools/train.py",
             "args": [
                 "--config",
-                "configs/diff_tsr/diff_tsr_100k_4x20_1000k_reds4.py",
+                "config/cls/cls_mv3.yml",
 
             ],
-            "pythonPath": "config/cls/cls_mv3.yml",
+            "pythonPath": "D:/anaconda/envs/DIFFUIR/python.exe",
             "console": "integratedTerminal"
         }
     ]

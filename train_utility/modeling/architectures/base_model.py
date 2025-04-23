@@ -12,21 +12,21 @@ class BaseModel(nn.Module):
         super(BaseModel, self).__init__()
         
         # ---------- 有关 backbone 的配置 ----------
-        if 'Backbone' not in config:
+        if 'Backbone' not in config or config['Backbone'] is None:
             self.use_backbone = False
         else:
             self.use_backbone = True
             self.backbone = build_backbone(config['Backbone'])  # backbone 是一个模型
             
         # ---------- 有关 neck 的配置 ----------
-        if 'Neck' not in config:
+        if 'Neck' not in config or config['Neck'] is None:
             self.use_neck = False
         else:
             self.use_neck = True
             self.neck = build_neck(config['Neck'])  # neck 是一个模型
             
         # ---------- 有关 head 的配置 ----------
-        if 'Head' not in config:
+        if 'Head' not in config or config['Head'] is None:
             self.use_head = False
         else:
             self.use_head = True

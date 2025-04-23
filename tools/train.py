@@ -6,7 +6,7 @@ sys.path.append(__dir__)
 sys.path.insert(0, os.path.abspath(os.path.join(__dir__, '..')))
 
 from train_utility.engine.trainer import Trainer
-from train_utility.engine.callbacks import LossHistory
+# from train_utility.engine.callbacks import LossHistory
 from tools.utility import ArgsParser, Config
 
 def parse_args():
@@ -23,7 +23,12 @@ def parse_args():
 def main():
     FLAGS = parse_args()
     print("config:",FLAGS.config)
-    print("config-var:",vars(Config(FLAGS.config)) )  # 可以从配置文件中成功的读取出配置参数!!!
-          
+    print("config-var:",Config(FLAGS.config).cfg)  # 可以从配置文件中成功的读取出配置参数!!!
+    # 这是一个字典类型的配置参数
+    config = Config(FLAGS.config).cfg  
+    
+    trainer = Trainer(config)
+    
+
 if __name__ == "__main__":
     main()
