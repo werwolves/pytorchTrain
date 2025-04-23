@@ -2,6 +2,8 @@ import numpy as np
 import torch, os
 import torch.nn as nn
 from tqdm import tqdm
+from train_utility.modeling.architectures import build_model
+
 
 __all__ = ['Trainer']
 
@@ -9,6 +11,7 @@ __all__ = ['Trainer']
 class Trainer:
     def __init__(self, model, **config):
         self.model = config.get('model',None) 
+        self.model = build_model(self.cfg['Architecture'])
         self.train_data_loader = config.get('train_data_loader', None) 
         self.val_data_loader = config.get('val_data_loader', None) 
         self.loss_fn = config.get('loss', None)
