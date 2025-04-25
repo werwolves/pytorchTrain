@@ -1,4 +1,4 @@
 *.pyc
-train_data/*
-!train_data/README.md
+train_data/cls/*
+!train_data/cls/gen_train_cls.ipynb
 output/*
