@@ -1,6 +1,7 @@
 import os
+import numpy as np
 from torch.utils.data import Dataset
-from .imaug import create_operators
+from .imaug import create_operators, transform
 
 class SimpleDataSet(Dataset):
 
@@ -34,7 +35,7 @@ class SimpleDataSet(Dataset):
         """ 读取标签文件 """
         lines = []
         for this_flie_path  in self.label_file_list:
-            with open(self.label_file, 'r', encoding='utf-8') as f:
+            with open(this_flie_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
             lines.extend(lines)
         return lines
@@ -43,15 +44,31 @@ class SimpleDataSet(Dataset):
     def get_ext_data(self):
         ext_data_num = 0
         for ops in self.ops:
-            if hasattr(ops, 'ext_data_num'):  # 此处的 ops 显然是一个对象
-                ext_data_num = ops.ext_data_num
+            if hasattr(ops, 'ext_data_num'):  # 此处的 ops 显然是一个对象 | 判断 ops 是否有 ext_data_num 属性
+                ext_data_num = getattr(ops, 'ext_data_num') # 
                 break
-            
-            
-            
-            
+        load_data_ops = self.ops[:self.ext_op_transform_idx] # 取出前面的一部分操作(这些操作是一些基础操作)用于额外数据的处理
         
-        random.choice()
+        ext_data = []
+        
+        while len(ext_data) < ext_data_num:  # 如果扩展数据的数量小于要求的数量，则继续添加操作 
+            # 这里的 ops 是一个列表，里面是一些数据处理的操作
+            file_idx = self.data_idx_order_list[np.random.randint(0, len(self.data_lines)-1)] # 随机选择一个数据的索引
+            data_info = self.data_lines[file_idx] # 读取数据的信息
+            file_name, label_info = data_info.strip('\n').strip('\t') # 读取数据的文件名和标签信息
+            img_path = os.path.join(self.data_dir, file_name) # 读取数据的路径
+            assert os.path.exists(img_path), f"Image path {img_path} does not exist!"
+            data = {'img_path': img_path, 'label': label_info} # 读取数据的标签信息 
+            # 为防止图像的路径中含有中文字符
+            with open(img_path, 'rb') as f:
+                img = f.read()
+                data['image'] = img   
+            data = transform(data, load_data_ops) # 对数据进行处理
+                
+            ext_data.append(data)
+        return ext_data
+        
+        
         
     def __getitem__(self, index):
         """ 训练/验证/测试时，获取数据集中的一条数据 """
@@ -66,10 +83,13 @@ class SimpleDataSet(Dataset):
         # 为防止图像的路径中含有中文字符
         with open(img_path, 'rb') as f:
             img = f.read()
-            data['img'] = img
+            data['image'] = img
         # 上述读取的是一个正常的数据，下面是读取一个额外的扩充数据，用于数据增强
         data['ext_data'] = self.get_ext_data()
+        data =  transform(data, self.ops)
         
+        return data
+    
     
     def __len__(self):
         return len(self.data_idx_order_list)
