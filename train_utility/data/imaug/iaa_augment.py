@@ -52,7 +52,7 @@ class IaaAugmenter:
                     {
                     'type': 'Resize',
                     'args': {
-                        'size': [0.5, 3]
+                        'size': [0.5, 3.0]
                     }
                     }
                 ]
@@ -85,9 +85,16 @@ class IaaAugmenter:
         if self.augmenter is not None:
             aug = self.augmenter.to_deterministic()
             data['image'] = aug.augment_image(img)
+            data = self.may_augment_annotation(aug, data, shape)
+        return data            
             
-            
-            
+if __name__ == '__main__':
+    augmenter = IaaAugmenter()
+    data = {'image': np.ones((100, 100, 3)), 'polys': [[[10, 10], [20, 20], [30, 30], [40, 40]]]}
+    augmenter(data)    
+    
+    print(data['image'].shape)  # (100, 100, 3)
+    print(data['polys'])  # [[[10, 10], [20, 20], [30, 30], [40, 40]]]       
             
             
             
