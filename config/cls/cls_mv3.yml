@@ -36,7 +36,7 @@ PostProcess:
 Train:
   dataset:
     name: SimpleDataSet
-    data_dir: ./train_data/cls
+    data_dir: ./train_data/cls/cat_dog
     label_file_list:
       - ./train_data/cls/train_list.txt
     transforms:
@@ -60,7 +60,7 @@ Train:
 Eval:
   dataset:
     name: SimpleDataSet
-    data_dir: ./train_data/cls
+    data_dir: ./train_data/cls/cat_dog
     label_file_list:
       - ./train_data/cls/val_list.txt
     transforms:
@@ -68,6 +68,7 @@ Eval:
           img_mode: BGR
           channel_first: False
       - ClsLabelEncode: # Class handling label
+          label_list: *label_list 
       - ClsResizeImg:
           image_shape: [3, 48, 192]
       - KeepKeys:

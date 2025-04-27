@@ -2,6 +2,14 @@ import random
 import cv2, math
 import numpy as np
 
+
+
+def flag():
+    """
+    flag
+    """
+    return 1 if random.random() > 0.5000001 else -1
+
 def hsv_aug(img):
     """
     cvtColor

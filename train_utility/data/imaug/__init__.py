@@ -38,8 +38,11 @@ def create_operators(op_list, global_config=None):
         assert op_name in support_list, \
             "The op {} is not in support list: {}".format(op_name, support_list)
         param = {} if op[op_name] is None else op[op_name]
-        
-        operator = eval(op_name)(param)
+        try:
+             operator = eval(op_name)(**param)
+        except Exception as e:
+            print(f"Error in creating operator {op_name}: {e}")
+            continue
         ops.append(operator)
         
     return ops
