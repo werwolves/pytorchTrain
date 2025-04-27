@@ -3,6 +3,7 @@ import torch, os
 import torch.nn as nn
 from tqdm import tqdm
 from train_utility.modeling.architectures import build_model
+from train_utility.losses import build_loss
 from train_utility.data import build_dataset
 from train_utility.engine.callbacks import LossHistory
 
@@ -18,10 +19,12 @@ class Trainer:
         self.val_data_loader = build_dataset(config, 'Eval', None)
         
         # self.val_data_loader = config.get('val_data_loader', None) 
-        self.loss_fn = config.get('loss', None)
-        self.optimizer = config.get('optimizer', None)
+        # self.loss_fn = config.get('loss', None)
+        self.loss_fn = build_loss(config['Loss'])
+        
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-5)  # TODO: 这是临时使用的方案
         # 这轮模型 训练的epoch数
-        self.epoch_num = config.get('epoch_num', None)
+        self.epoch_num = config['Global']['epoch_num']
         # 是否采用半精度训练
         self.is_fp16 = config.get('is_fp16', False)
         # 在训练的过程中是否采用梯度裁剪
@@ -51,26 +54,28 @@ class Trainer:
         train_accuracy, val_accuracy = 0.0, 0.0
         # 记录训练过程中的进程条
         print("Start training...")
-        train_pbar = tqdm(total=len(self.train_data_loader), desc="Training epoch:{cur_epoch}/{self.epoch_num}",  postfix=dict, mininterval=0.3)
+        train_pbar = tqdm(total=len(self.train_data_loader), desc=f"Training epoch:{cur_epoch}/{self.epoch_num}",  postfix=dict, mininterval=0.3)
         # 
         
         # -------------------------------------------------  进入模型 训练阶段--------------------------------------------------
         self.model.train()
+        self.model = self.model.to(self.device)  # 将模型移动到指定设备上
         for iteration, batch_data in enumerate(self.train_data_loader):
             # 数据可能还有其他的标签，根据不同的模型，需要做出不同的修改。这里假设 训练数据集的标签是img和label
-            batch_data["img"], batch_data["label"] = batch_data["img"].to(self.device), batch_data["label"].to(self.device)
+            batch_data[0], batch_data[1] = batch_data[0].to(self.device), batch_data[1].to(self.device)
             
             # ** 固定写法1 ====》 清空梯度
             self.optimizer.zero_grad()  
             if not self.is_fp16:
-                pred = self.model(batch_data["img"])
+                pred = self.model(batch_data[0])
             else:
                 with torch.cuda.amp.autocast():
                     # 模型前向传播
-                    pred = self.model(batch_data["img"])
+                    pred = self.model(batch_data[0])
                     # 计算损失
-            loss = self.loss_fn(pred, batch_data["label"])
+            loss = self.loss_fn(pred, batch_data[1])
             # ** 固定写法2 ====》 反向传播
+            # loss = loss["loss"]
             loss.backward()
             if self.is_clip_grad:
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
@@ -87,24 +92,24 @@ class Trainer:
         # -------------------------------------------------  进入模型 验证阶段--------------------------------------------------
         # 进入验证模型
         print("Start validating...")
-        val_pbar = tqdm(total=len(self.val_data_loader), desc="Validation epoch:{}/{}",  postfix=dict, mininterval=0.3)
+        val_pbar = tqdm(total=len(self.val_data_loader), desc=f"Validation epoch:{cur_epoch}/{self.epoch_num}",  postfix=dict, mininterval=0.3)
         self.model.eval()
         
         
         # 判断是否需要保存模型
         for iteration, batch_data in enumerate(self.val_data_loader):
             # 数据可能还有其他的标签，根据不同的模型，需要做出不同的修改。这里假设 训练数据集的标签是img和label
-            batch_data["img"], batch_data["label"] = batch_data["img"].to(self.device), batch_data["label"].to(self.device)
+            batch_data[0], batch_data[1] = batch_data[0].to(self.device), batch_data[1].to(self.device)
             
             with torch.no_grad():
                 if not self.is_fp16:
-                    pred = self.model(batch_data["img"])
+                    pred = self.model(batch_data[0])
                 else:
                     with torch.cuda.amp.autocast():
                         # 模型前向传播
-                        pred = self.model(batch_data["img"])
+                        pred = self.model(batch_data[0])
                         # 计算损失
-                loss = self.loss_fn(pred, batch_data["label"])
+                loss = self.loss_fn(pred, batch_data[1])
             val_loss += loss.item()
             val_pbar.set_postfix(**{
                 'val_loss': val_loss / (iteration + 1),
@@ -122,7 +127,7 @@ class Trainer:
         if len(self.loss_history.val_loss) <= 1 or cur_val_loss <= min(self.loss_history.val_loss):
             print('Save best model to best_epoch_weights.pth')
             torch.save(self.model.state_dict(), os.path.join(self.model_save_dir, "best_epoch_weights.pth"))
-            torch.save(self.model.state_dict(), os.path.join(self.model_save_dir, f"best_epoch_weights_epoch:{cur_epoch+1}_val_loss:{cur_val_loss}_.pth"))
+            torch.save(self.model.state_dict(), os.path.join(self.model_save_dir, f"best_epoch_weights_epoch_{cur_epoch+1}_val_loss_{cur_val_loss}_.pth"))
         return cur_train_loss, cur_val_loss
     
     def train(self, epoch):

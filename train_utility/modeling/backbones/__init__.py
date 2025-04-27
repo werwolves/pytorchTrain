@@ -3,7 +3,7 @@ __all__ = ["build_backbone"]
 
 def build_backbone(config):
     
-    from .det_mobilenet_v3 import MobileNetV3
+    from .rec_mobilenet_v3 import MobileNetV3
     support_backbone = [
         "MobileNetV3"
     ]

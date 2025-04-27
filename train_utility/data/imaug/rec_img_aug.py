@@ -1,7 +1,7 @@
 import random
 import cv2, math
 import numpy as np
-
+import torch
 
 
 def flag():
@@ -160,10 +160,10 @@ class ClsResizeImg:
     def __call__(self, data):
         img = data['image']
         h, w, _ = img.shape
-        new_h, new_w = self.image_shape[0], self.image_shape[1]
+        new_h, new_w = self.image_shape[1], self.image_shape[2]
         if h != new_h or w != new_w:
             img = cv2.resize(img, (new_w, new_h))
-        data['image'] = img
+        data['image'] = (img.transpose((2, 0, 1)) / 255.0).astype(np.float32)
         return data
     
     

@@ -75,10 +75,10 @@ class SimpleDataSet(Dataset):
         file_idx = self.data_idx_order_list[index]
         data_info = self.data_lines[file_idx]
         
-        print("-=" * 20)
-        print("data_info: ", data_info)
-        res = data_info.strip('\n').split('\t')
-        print(f"rec:{res}")
+        # print("-=" * 20)
+        # print("data_info: ", data_info)
+        # res = data_info.strip('\n').split('\t')
+        # print(f"rec:{res}")
         file_name, label_info = data_info.strip('\n').split('\t')
         img_path = os.path.join(self.data_dir, file_name)
         assert os.path.exists(img_path), f"Image path {img_path} does not exist!"

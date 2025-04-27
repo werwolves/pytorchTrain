@@ -9,15 +9,15 @@ Global:
 Architecture:
   Backbone: 
     name: MobileNetV3
-    model_name: large
-    class_num: 2
+    model_name: small
+    scale: 0.35
   Neck:
   Head:
+    name: ClsHead
+    class_dim: 2
 
 Loss:
-  name: CrossEntropyLoss
-  class_num: 2
-  label_smooth: 0.1
+  name: ClsLoss
 
 Optimizer:
   name: Adam
@@ -47,8 +47,8 @@ Train:
           label_list: *label_list # Class handling label
       - BaseDataAugmentation:
       - RandAugment:
-      - ClsResizeImg:
-          image_shape: [3, 48, 192]
+      - ClsResizeImg:  
+          image_shape: [3, 224, 224]
       - KeepKeys:
           keep_keys: ['image', 'label'] # dataloader will return list in this order
   loader:

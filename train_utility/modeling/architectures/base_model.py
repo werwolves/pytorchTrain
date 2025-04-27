@@ -17,6 +17,7 @@ class BaseModel(nn.Module):
         else:
             self.use_backbone = True
             self.backbone = build_backbone(config['Backbone'])  # backbone 是一个模型
+            in_channels = self.backbone.out_channels
             
         # ---------- 有关 neck 的配置 ----------
         if 'Neck' not in config or config['Neck'] is None:
@@ -30,6 +31,7 @@ class BaseModel(nn.Module):
             self.use_head = False
         else:
             self.use_head = True
+            config['Head']['in_channels'] = in_channels
             self.head = build_head(config['Head'])
         
         
