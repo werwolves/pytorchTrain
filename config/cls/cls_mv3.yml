@@ -4,6 +4,7 @@ Global:
   batch_size: 64
   image_shape: [3, 224, 224]
   pretrained: 
+  label_list: &label_list ['dog','cat']
 
 Architecture:
   Backbone: 
@@ -43,6 +44,7 @@ Train:
           img_mode: BGR
           channel_first: False
       - ClsLabelEncode: 
+          label_list: *label_list # Class handling label
       - BaseDataAugmentation:
       - RandAugment:
       - ClsResizeImg:
@@ -52,7 +54,7 @@ Train:
   loader:
     shuffle: True
     drop_last: True
-    batch_size: 64
+    batch_size: 12
     num_workers: 0
 
 Eval:
@@ -60,7 +62,7 @@ Eval:
     name: SimpleDataSet
     data_dir: ./train_data/cls
     label_file_list:
-      -./train_data/cls/val_list.txt
+      - ./train_data/cls/val_list.txt
     transforms:
       - DecodeImage: # load image
           img_mode: BGR
@@ -73,5 +75,5 @@ Eval:
   loader:
     shuffle: False
     drop_last: False
-    batch_size_per_card: 512
+    batch_size: 12
     num_workers: 0

@@ -11,7 +11,7 @@ class SimpleDataSet(Dataset):
         self.mode = mode.lower()
         
         # 整个工程的全局配置
-        global_config = config['global']
+        global_config = config['Global']
         # 训练/验证 数据集的配置
         dataset_config = config[mode]['dataset']
         # 训练/验证 数据加载器的配置
@@ -23,7 +23,7 @@ class SimpleDataSet(Dataset):
         self.label_file_list = dataset_config['label_file_list']
         self.data_lines = self.read_label_file()
         if self.mode == 'train' and self.do_shuffle:
-            self.shuffle(self.data_lines)
+            np.random.shuffle(self.data_lines)
         # 数据的索引顺序
         self.data_idx_order_list = list(range(len(self.data_lines)))
         ## ---------------------- 数据处理的操作 ----------------------

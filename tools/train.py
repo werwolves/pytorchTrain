@@ -28,7 +28,7 @@ def main():
     config = Config(FLAGS.config).cfg  
     
     trainer = Trainer(config)
-    
+    trainer.train(config['Global']['epoch_num'])  # 训练模型的轮数
 
 if __name__ == "__main__":
     main()
