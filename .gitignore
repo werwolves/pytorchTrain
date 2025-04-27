@@ -2,4 +2,6 @@
 train_data/cls/*
 !train_data/cls/gen_train_cls.ipynb
 output/*
-test.ipynb
+
+laboratory/*
+!laboratory/README.md
