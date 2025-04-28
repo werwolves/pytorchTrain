@@ -37,7 +37,7 @@ class Trainer:
         # 保存模型的路径
         self.model_save_dir = config["Global"].get('output_dir', None)
         # 训练模型所使用的设备
-        self.device = config.get('device', None)
+        self.device = config.get('device', 'cuda')
         # 记录训练过程的
         # self.loss_history = config.get('loss_history', None)
         self.loss_history = LossHistory(self.model_save_dir, self.model, config['Global']['image_shape'][1:])

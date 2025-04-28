@@ -91,8 +91,9 @@ class ConstLR:
             return 1.0        
         
 # TODO: 添加其他学习率调整策略 
- 
- 
+# TODO:  只有 参考指标连续多少次满足条件，则学习率调整 """
+class ReduceLROnPlateau:
+   pass
         
 class LinearLR:
     """ 学习率线性下降 """
@@ -122,7 +123,11 @@ class LinearLR:
         if epoch < self.warmup_epoch:
             return (self.warpup_init_lr + (self.warpup_target_lr - self.warpup_init_lr) * (epoch) / max(1,self.warmup_epoch-1)) / self.warpup_target_lr
         else:
-            return  (self.tot_epoch - epoch) / (self.tot_epoch - self.warmup_epoch) 
+            # if epoch > self.tot_epoch :  # TODO: 防止学习率出现负值
+            #     epoch = self.tot_epoch-1 
+            lr_factor = (self.tot_epoch - epoch) / (self.tot_epoch - self.warmup_epoch) 
+            return  lr_factor if lr_factor >0  else 0
+
         
         
         
@@ -164,11 +169,11 @@ class CosineAnnealingLR:
 if __name__ == '__main__':
     lr_config = {
         'lr': 0.001,
-        'warmup_epoch': 6,
+        'warmup_epoch': 2,
         'warpup_init_lr': 0.0001,
         'milestones': [30, 60, 90],
         # 'warpup_target_lr': 0.001,
-        "NUM_EPOCHS": 100
+        "NUM_EPOCHS": 200
     }
     import torch
     import torch.optim as optim
@@ -189,7 +194,7 @@ if __name__ == '__main__':
     
     model = torch.nn.Linear(10, 2)  # 示例模型
     optimizer = optim.SGD(model.parameters(), lr=lr_config['lr'])
-    lr_scheduler_ = CosineAnnealingLR(**lr_config)(optimizer)
+    lr_scheduler_ = LinearLR(**lr_config)(optimizer)
     
 
     

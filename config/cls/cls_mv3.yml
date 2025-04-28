@@ -28,7 +28,7 @@ Optimizer:
   weight_decay: 0.0001
 
 LRScheduler:
-  name: CosineAnnealingLR
+  name: LinearLR #CosineAnnealingLR
   lr: *lr 
   warmup_epoch: 2
   warpup_init_lr: 0.0001
