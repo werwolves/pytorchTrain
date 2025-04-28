@@ -17,7 +17,8 @@ class ResNet(nn.Module):
         self.layer1 = model.layer1
         self.layer2 = model.layer2
         self.layer3 = model.layer3
-
+        self.out_channels= model.layer3[-1].conv3.out_channels
+        
     def forward(self, x):
         x = self.conv1(x)
         x = self.bn1(x)
@@ -33,3 +34,4 @@ if __name__ == '__main__':
     model = ResNet()
     out = model(x)
     print(out.shape)  # 输出形状
+    print(model.out_channels)
