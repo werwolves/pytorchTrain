@@ -8,9 +8,9 @@ Global:
 
 Architecture:
   Backbone: 
-    name: MobileNetV3
-    model_name: small
-    scale: 0.35
+    name: ResNet # MobileNetV3
+    # model_name: small
+    # scale: 0.35
   Neck:
   Head:
     name: ClsHead
@@ -30,7 +30,7 @@ Optimizer:
 LRScheduler:
   name: LinearLR #CosineAnnealingLR
   lr: *lr 
-  warmup_epoch: 2
+  warmup_epoch: -2
   warpup_init_lr: 0.0001
   warpup_target_lr: *lr
 
