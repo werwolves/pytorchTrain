@@ -5,6 +5,8 @@ from tqdm import tqdm
 from train_utility.modeling.architectures import build_model
 from train_utility.losses import build_loss
 from train_utility.data import build_dataset
+from train_utility.optimizer import build_optimizer
+
 from train_utility.engine.callbacks import LossHistory
 
 __all__ = ['Trainer']
@@ -22,7 +24,10 @@ class Trainer:
         # self.loss_fn = config.get('loss', None)
         self.loss_fn = build_loss(config['Loss'])
         
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-5)  # TODO: 这是临时使用的方案
+        # self.optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-5)  # TODO: 这是临时使用的方案
+
+        self.optimizer, self.lr_scheduler = build_optimizer(config["Optimizer"], config["LRScheduler"], self.model)
+        
         # 这轮模型 训练的epoch数
         self.epoch_num = config['Global']['epoch_num']
         # 是否采用半精度训练
@@ -141,6 +146,8 @@ class Trainer:
             train_loss, val_loss = self.fit_one_epoch(cur_epoch)
             # 记录训练过程中的损失和准确率
             total_loss += train_loss
+            
+            self.lr_scheduler.step()
             # 计算准确率
             # correct += (pred.argmax(dim=1) == batch_data["label"]).sum().item()
             # total += batch_data["label"].size(0)

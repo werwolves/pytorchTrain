@@ -90,6 +90,9 @@ class ConstLR:
         else:
             return 1.0        
         
+# TODO: 添加其他学习率调整策略 
+ 
+ 
         
 class LinearLR:
     """ 学习率线性下降 """
