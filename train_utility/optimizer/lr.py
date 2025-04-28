@@ -16,7 +16,7 @@ class StepLR:
         self.gamma = gamma
         self.initial_lr = self.lr_config.pop('lr')  # 初始学习率 
         self.warpup_init_lr = self.lr_config.get('warpup_init_lr', 0)  # 初始学习率 (同时也是warmup的目标学习率)
-        self.warpup_target_lr = self.lr_config.get('warpup_target_lr', 0)
+        self.warpup_target_lr = self.lr_config.get('warpup_target_lr', self.initial_lr)
         
     def __call__(self, optimizer):
         #  每次执行 lr_scheduler_.step() 时，last_epoch =+ 1, 并将 last_epoch 传入 lambda_func
@@ -24,9 +24,9 @@ class StepLR:
         return lr_scheduler_
     
     def lambda_func(self, epoch):
+        """ 最终的学习率是 原始学习率 * 该函数的返回值"""
         if epoch < self.warmup_epoch:
-            return (self.warpup_init_lr + (self.warpup_target_lr - self.warpup_init_lr) * epoch / max(1,self.warmup_epoch)) / self.warpup_target_lr
-            # return 1.0 * (epoch+1) / max(1,self.warmup_epoch)
+            return (self.warpup_init_lr + (self.warpup_target_lr - self.warpup_init_lr) * (epoch) / max(1,self.warmup_epoch-1)) / self.warpup_target_lr
         else:
             return self.gamma ** epoch
         
@@ -37,7 +37,7 @@ if __name__ == '__main__':
         'lr': 0.001,
         'warmup_epoch': 2,
         'warpup_init_lr': 0.0001,
-        'warpup_target_lr': 0.001,
+        # 'warpup_target_lr': 0.001,
         "NUM_EPOCHS": 100
     }
     import torch
@@ -64,4 +64,4 @@ if __name__ == '__main__':
 
     
     lr_l = schedular_lr(optimizer, lr_scheduler_)
-    # print(lr_l)
+    print(lr_l)
