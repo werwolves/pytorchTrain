@@ -30,13 +30,47 @@ class StepLR:
         else:
             return self.gamma ** epoch
         
+class MultiStepLR:
+    def __init__(self, 
+                 warmup_epoch=0, 
+                 gamma=0.9,
+                 last_epoch=-1,
+                 **kwargs   
+                 ):
+        super(MultiStepLR, self).__init__()
+        self.lr_config = copy.deepcopy(kwargs)
+        self.last_epoch = last_epoch
+        self.warmup_epoch = warmup_epoch
+        self.milestones = self.lr_config.get('milestones', [])
+        self.gamma = gamma
+        self.initial_lr = self.lr_config.pop('lr')  # 初始学习率 
+        self.warpup_init_lr = self.lr_config.get('warpup_init_lr', 0)  # 初始学习率 (同时也是warmup的目标学习率)
+        self.warpup_target_lr = self.lr_config.get('warpup_target_lr', self.initial_lr)
+        
+    def __call__(self, optimizer):
+        #  每次执行 lr_scheduler_.step() 时，last_epoch =+ 1, 并将 last_epoch 传入 lambda_func
+        lr_scheduler_ = lr_scheduler.LambdaLR(optimizer, self.lambda_func, last_epoch=self.last_epoch)
+        return lr_scheduler_
+    
+    def lambda_func(self, epoch):
+        """ 最终的学习率是 原始学习率 * 该函数的返回值"""
+        if epoch < self.warmup_epoch:
+            return (self.warpup_init_lr + (self.warpup_target_lr - self.warpup_init_lr) * (epoch) / max(1,self.warmup_epoch-1)) / self.warpup_target_lr
+        else:
+            return self.gamma ** len([milestone for milestone in self.milestones if milestone <= epoch])   
+        
+        
+        
+        
+        
         
         
 if __name__ == '__main__':
     lr_config = {
         'lr': 0.001,
-        'warmup_epoch': 2,
+        'warmup_epoch': 6,
         'warpup_init_lr': 0.0001,
+        'milestones': [30, 60, 90],
         # 'warpup_target_lr': 0.001,
         "NUM_EPOCHS": 100
     }
@@ -59,7 +93,7 @@ if __name__ == '__main__':
     
     model = torch.nn.Linear(10, 2)  # 示例模型
     optimizer = optim.SGD(model.parameters(), lr=lr_config['lr'])
-    lr_scheduler_ = StepLR(**lr_config)(optimizer)
+    lr_scheduler_ = MultiStepLR(**lr_config)(optimizer)
     
 
     
