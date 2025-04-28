@@ -3,6 +3,7 @@ from functools import partial
 from torch.optim import lr_scheduler
 
 class StepLR:
+    """" 每个epoch 学习率衰减一下 """
     def __init__(self, 
                  warmup_epoch=0, 
                  gamma=0.9,
@@ -31,6 +32,7 @@ class StepLR:
             return self.gamma ** epoch
         
 class MultiStepLR:
+    """ 到指定的 epoch 学习率衰减一下 """
     def __init__(self, 
                  warmup_epoch=0, 
                  gamma=0.9,
@@ -60,10 +62,64 @@ class MultiStepLR:
             return self.gamma ** len([milestone for milestone in self.milestones if milestone <= epoch])   
         
         
+class ConstLR:
+    """ 学习率保持不变 """
+    def __init__(self, 
+                 warmup_epoch=0, 
+                 last_epoch=-1,
+                 **kwargs   
+                 ):
+        super(ConstLR, self).__init__()
+        self.lr_config = copy.deepcopy(kwargs)
+        self.last_epoch = last_epoch
+        self.warmup_epoch = warmup_epoch
+        
+        self.initial_lr = self.lr_config.pop('lr')  # 初始学习率 
+        self.warpup_init_lr = self.lr_config.get('warpup_init_lr', 0)  # 初始学习率 (同时也是warmup的目标学习率)
+        self.warpup_target_lr = self.lr_config.get('warpup_target_lr', self.initial_lr)
+        
+    def __call__(self, optimizer):
+        #  每次执行 lr_scheduler_.step() 时，last_epoch =+ 1, 并将 last_epoch 传入 lambda_func
+        lr_scheduler_ = lr_scheduler.LambdaLR(optimizer, self.lambda_func, last_epoch=self.last_epoch)
+        return lr_scheduler_
+    
+    def lambda_func(self, epoch):
+        """ 最终的学习率是 原始学习率 * 该函数的返回值"""
+        if epoch < self.warmup_epoch:
+            return (self.warpup_init_lr + (self.warpup_target_lr - self.warpup_init_lr) * (epoch) / max(1,self.warmup_epoch-1)) / self.warpup_target_lr
+        else:
+            return 1.0        
         
         
+class LinearLR:
+    """ 学习率线性下降 """
+    def __init__(self, 
+                 warmup_epoch=0, 
+                 last_epoch=-1,
+                 **kwargs   
+                 ):
+        super(LinearLR, self).__init__()
+        self.lr_config = copy.deepcopy(kwargs)
+        self.last_epoch = last_epoch
+        self.warmup_epoch = warmup_epoch
         
+        self.tot_epoch = self.lr_config.get('tot_epoch', 100)
         
+        self.initial_lr = self.lr_config.pop('lr')  # 初始学习率 
+        self.warpup_init_lr = self.lr_config.get('warpup_init_lr', 0)  # 初始学习率 (同时也是warmup的目标学习率)
+        self.warpup_target_lr = self.lr_config.get('warpup_target_lr', self.initial_lr)
+        
+    def __call__(self, optimizer):
+        #  每次执行 lr_scheduler_.step() 时，last_epoch =+ 1, 并将 last_epoch 传入 lambda_func
+        lr_scheduler_ = lr_scheduler.LambdaLR(optimizer, self.lambda_func, last_epoch=self.last_epoch)
+        return lr_scheduler_
+    
+    def lambda_func(self, epoch):
+        """ 最终的学习率是 原始学习率 * 该函数的返回值"""
+        if epoch < self.warmup_epoch:
+            return (self.warpup_init_lr + (self.warpup_target_lr - self.warpup_init_lr) * (epoch) / max(1,self.warmup_epoch-1)) / self.warpup_target_lr
+        else:
+            return  (self.tot_epoch - epoch) / (self.tot_epoch - self.warmup_epoch) 
         
 if __name__ == '__main__':
     lr_config = {
@@ -93,7 +149,7 @@ if __name__ == '__main__':
     
     model = torch.nn.Linear(10, 2)  # 示例模型
     optimizer = optim.SGD(model.parameters(), lr=lr_config['lr'])
-    lr_scheduler_ = MultiStepLR(**lr_config)(optimizer)
+    lr_scheduler_ = LinearLR(**lr_config)(optimizer)
     
 
     
