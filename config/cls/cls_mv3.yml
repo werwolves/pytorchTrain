@@ -21,12 +21,23 @@ Loss:
 
 Optimizer:
   name: Adam
-  beta1: 0.9
-  beta2: 0.999
-  lr:
-    name: Cosine
-    learning_rate: 0.001
-    warmup_epoch: 5
+  lr: &lr 0.001
+  
+
+  betas: (0.9, 0.999)
+  eps: 1e-8
+  weight_decay: 0
+  amsgrad: False
+  weight_decay: 0.0001
+
+LRScheduler:
+  name: CosineAnnealingLR
+  lr: *lr 
+  warmup_epoch: 2
+  warpup_init_lr: 0.0001
+  warpup_target_lr: *lr
+
+
 
 PostProcess:
   name: Cls
