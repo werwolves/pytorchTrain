@@ -163,7 +163,10 @@ class ClsResizeImg:
         new_h, new_w = self.image_shape[1], self.image_shape[2]
         if h != new_h or w != new_w:
             img = cv2.resize(img, (new_w, new_h))
-        data['image'] = (img.transpose((2, 0, 1)) / 255.0).astype(np.float32)
+        img =  (img.transpose((2, 0, 1)) / 255.0).astype(np.float32)
+        img -= 0.5
+        img /= 0.5
+        data['image'] = img
         return data
     
     

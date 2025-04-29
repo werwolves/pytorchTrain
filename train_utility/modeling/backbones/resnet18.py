@@ -3,11 +3,16 @@ import torch.nn as nn
 import torchvision.models as models
 from torchvision.models import ResNet50_Weights
 
+import torch
+import torch.nn as nn
+import torchvision.models as models
+from torchvision.models import ResNet18_Weights
+
 class ResNet(nn.Module):
     def __init__(self):
         super(ResNet, self).__init__()
-        # 加载预训练的 ResNet50 模型
-        model = models.resnet50(weights=ResNet50_Weights.DEFAULT)
+        # 加载预训练的 ResNet18 模型
+        model = models.resnet18(weights=ResNet18_Weights.DEFAULT)
         
         # 提取 ResNet 的前 7 层
         self.conv1 = model.conv1
@@ -15,9 +20,10 @@ class ResNet(nn.Module):
         self.relu = model.relu
         self.maxpool = model.maxpool
         self.layer1 = model.layer1
-        self.layer2 = model.layer2
-        self.layer3 = model.layer3
-        self.out_channels= model.layer3[-1].conv3.out_channels
+        # self.layer2 = model.layer2
+        # self.layer3 = model.layer3
+        # 获取 layer3 的输出通道数
+        self.out_channels = model.layer1[-1].conv2.out_channels  # ResNet18 的 layer3 输出通道数为 conv2 的输出通道数
         
     def forward(self, x):
         x = self.conv1(x)
@@ -25,9 +31,11 @@ class ResNet(nn.Module):
         x = self.relu(x)
         x = self.maxpool(x)
         x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        return x  # x.shape = torch.Size([1, 1024, 14, 14])
+        # x = self.layer2(x)
+        # x = self.layer3(x)
+        return x  # 输出特征图的形状
+
+
 
 if __name__ == '__main__':
     x = torch.randn(1, 3, 224, 224)

@@ -107,7 +107,7 @@ class LinearLR:
         self.last_epoch = last_epoch
         self.warmup_epoch = warmup_epoch
         
-        self.tot_epoch = self.lr_config.get('tot_epoch', 100)
+        self.tot_epoch = self.lr_config.get('tot_epoch', 500)
         
         self.initial_lr = self.lr_config.pop('lr')  # 初始学习率 
         self.warpup_init_lr = self.lr_config.get('warpup_init_lr', 0)  # 初始学习率 (同时也是warmup的目标学习率)
@@ -126,7 +126,7 @@ class LinearLR:
             # if epoch > self.tot_epoch :  # TODO: 防止学习率出现负值
             #     epoch = self.tot_epoch-1 
             lr_factor = (self.tot_epoch - epoch) / (self.tot_epoch - self.warmup_epoch) 
-            return  lr_factor if lr_factor >0  else 0
+            return  lr_factor if lr_factor > 0.02  else 0.02
 
         
         
@@ -173,7 +173,7 @@ if __name__ == '__main__':
         'warpup_init_lr': 0.0001,
         'milestones': [30, 60, 90],
         # 'warpup_target_lr': 0.001,
-        "NUM_EPOCHS": 200
+        "NUM_EPOCHS": 500
     }
     import torch
     import torch.optim as optim

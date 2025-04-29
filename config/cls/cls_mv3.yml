@@ -1,6 +1,6 @@
 Global:
-  epoch_num: 200
-  output_dir: ./output/cls_mv3
+  epoch_num: 500
+  output_dir: ./output/cls_mv4
   batch_size: 64
   image_shape: [3, 224, 224]
   pretrained: 
@@ -8,7 +8,7 @@ Global:
 
 Architecture:
   Backbone: 
-    name: ResNet # MobileNetV3
+    name: ResNet18 #ResNet # MobileNetV3
     # model_name: small
     # scale: 0.35
   Neck:
@@ -23,7 +23,7 @@ Optimizer:
   name: Adam
   lr: &lr 0.001
   betas: [0.9,0.999]
-  weight_decay: 0
+  weight_decay: 1e-5
   amsgrad: False
   weight_decay: 0.0001
 
@@ -78,7 +78,7 @@ Eval:
       - ClsLabelEncode: # Class handling label
           label_list: *label_list 
       - ClsResizeImg:
-          image_shape: [3, 48, 192]
+          image_shape: [3, 224, 224]
       - KeepKeys:
           keep_keys: ['image', 'label'] # dataloader will return list in this order
   loader:
