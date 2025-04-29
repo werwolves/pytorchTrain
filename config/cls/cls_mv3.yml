@@ -37,8 +37,14 @@ LRScheduler:
 
 
 PostProcess:
-  name: Cls
-  topk: 5
+  name: ClsPostProcess
+  label_list: *label_list
+
+#
+Metric:
+  name: ClsMetric
+  main_indicator: acc
+  # eval_batch_size: 12
 
 
 Train:

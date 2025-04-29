@@ -9,7 +9,7 @@ from .cls_postprocess import ClsPostProcess
 
 def build_post_process(config):
     support_list = [  
-        ClsPostProcess
+        "ClsPostProcess"
     ]
     
     assert config["name"] in support_list, f"post_process {config['name']} not supported!"

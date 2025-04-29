@@ -8,6 +8,9 @@ from train_utility.data import build_dataset
 from train_utility.optimizer import build_optimizer
 
 from train_utility.engine.callbacks import LossHistory
+from train_utility.metrics import build_metric
+from train_utility.postprocess import build_post_process
+
 
 __all__ = ['Trainer']
 
@@ -27,6 +30,11 @@ class Trainer:
         # self.optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-5)  # TODO: 这是临时使用的方案
 
         self.optimizer, self.lr_scheduler = build_optimizer(config["Optimizer"], config["LRScheduler"], self.model)
+        
+        # 有关 模型评估+推理后处理 的相关参数
+        self.metric = build_metric(config["Metric"])
+        self.post_process = build_post_process(config["PostProcess"])
+        
         
         # 这轮模型 训练的epoch数
         self.epoch_num = config['Global']['epoch_num']
@@ -115,14 +123,23 @@ class Trainer:
                         pred = self.model(batch_data[0])
                         # 计算损失
                 loss = self.loss_fn(pred, batch_data[1])
+                post_result = self.post_process(pred, batch_data)
+                
+                # self.metric(post_result)
+                # acc = self.metric.get_metric()
+                # print(metric_val)
+                
+                
+                
             val_loss += loss.item()
             val_pbar.set_postfix(**{
                 'val_loss': val_loss / (iteration + 1),
+                "val_acc": self.metric(post_result)["acc"],
             })  
             val_pbar.update(1)
         # 当一个 epoch验证完成后，关闭进程条
         val_pbar.close()
-        print("Validation finished!")
+        print("Validation finished!", "acc:", self.metric.get_metric())
         # 计算训练和验证的准确率 ---> 判断是否需要保存模型
         cur_train_loss, cur_val_loss = train_loss / len(self.train_data_loader), val_loss / len(self.val_data_loader)
         self.loss_history.append_loss(cur_epoch +1, cur_train_loss, cur_val_loss)
