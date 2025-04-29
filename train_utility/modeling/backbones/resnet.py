@@ -18,7 +18,30 @@ class ResNet(nn.Module):
         self.layer2 = model.layer2
         self.layer3 = model.layer3
         self.out_channels= model.layer3[-1].conv3.out_channels
-        
+        # 冻结所有参数
+        self.freeze_layers()
+    def freeze_parameters(self):
+        # 遍历所有参数并冻结
+        for param in self.parameters():
+            param.requires_grad = False 
+    
+    ##############################
+    def freeze_layers(self):
+        # 冻结 conv1, bn1, relu, maxpool 和 layer1
+        for param in self.conv1.parameters():
+            param.requires_grad = False
+        for param in self.bn1.parameters():
+            param.requires_grad = False
+        for param in self.relu.parameters():
+            param.requires_grad = False
+        for param in self.maxpool.parameters():
+            param.requires_grad = False
+        for param in self.layer1.parameters():
+            param.requires_grad = False
+        for param in self.layer2.parameters():
+            param.requires_grad = False
+    ##############################
+    
     def forward(self, x):
         x = self.conv1(x)
         x = self.bn1(x)
