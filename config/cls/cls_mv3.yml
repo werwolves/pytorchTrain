@@ -8,7 +8,7 @@ Global:
 
 Architecture:
   Backbone: 
-    name: ResNet18 #ResNet # MobileNetV3
+    name: ResNet # ResNet18 #ResNet # MobileNetV3
     # model_name: small
     # scale: 0.35
   Neck:

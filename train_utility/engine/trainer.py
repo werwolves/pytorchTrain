@@ -87,6 +87,7 @@ class Trainer:
                     pred = self.model(batch_data[0])
                     # 计算损失
             loss = self.loss_fn(pred, batch_data[1])
+            post_result = self.post_process(pred, batch_data)
             # ** 固定写法2 ====》 反向传播
             # loss = loss["loss"]
             loss.backward()
@@ -97,11 +98,12 @@ class Trainer:
             train_loss += loss.item()
             train_pbar.set_postfix(**{'loss': train_loss / (iteration + 1),
                                        'lr': self.optimizer.param_groups[0]['lr'],
+                                       "train_acc": self.metric(post_result)["acc"],
                                       })
             train_pbar.update(1)
         # 当一个 epoch训练完成后，关闭进程条
         train_pbar.close()
-        print("Training finished!")
+        print("Training finished!", "acc:", self.metric.get_metric())
         # -------------------------------------------------  进入模型 验证阶段--------------------------------------------------
         # 进入验证模型
         print("Start validating...")
