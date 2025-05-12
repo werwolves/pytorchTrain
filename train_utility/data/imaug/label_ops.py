@@ -29,7 +29,9 @@ class LayoutEncode:
         for label in labels:
             words_list.append(label["transcription"].strip())
             boxes_list.append(label["points"])
+            # TODO: boxes_list 是一个二维列表，需要将其转换为一维列表
             classes_list.append(label["class"])
+        boxes_list = [box for sublist in boxes_list for box in sublist]
         encoding = self.processor(data['image'], words_list, boxes=boxes_list, return_tensors="pt")
         
         data["input_ids"] = encoding["input_ids"]
