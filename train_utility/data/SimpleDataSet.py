@@ -1,4 +1,4 @@
-import os
+import os,json
 import numpy as np
 from torch.utils.data import Dataset
 from .imaug import create_operators, transform
@@ -56,6 +56,7 @@ class SimpleDataSet(Dataset):
             file_idx = self.data_idx_order_list[np.random.randint(0, len(self.data_lines)-1)] # 随机选择一个数据的索引
             data_info = self.data_lines[file_idx] # 读取数据的信息
             file_name, label_info = data_info.strip('\n').strip('\t') # 读取数据的文件名和标签信息
+            label_info = json.loads(label_info)
             img_path = os.path.join(self.data_dir, file_name) # 读取数据的路径
             assert os.path.exists(img_path), f"Image path {img_path} does not exist!"
             data = {'img_path': img_path, 'label': label_info} # 读取数据的标签信息 
@@ -80,6 +81,7 @@ class SimpleDataSet(Dataset):
         # res = data_info.strip('\n').split('\t')
         # print(f"rec:{res}")
         file_name, label_info = data_info.strip('\n').split('\t')
+        label_info = json.loads(label_info)
         img_path = os.path.join(self.data_dir, file_name)
         assert os.path.exists(img_path), f"Image path {img_path} does not exist!"
         data = {'img_path': img_path, 'label': label_info}
