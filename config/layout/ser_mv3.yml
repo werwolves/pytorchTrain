@@ -53,7 +53,7 @@ Train:
     name: SimpleDataSet
     data_dir: ./train_data/layout
     label_file_list:
-      - ./train_data/cls/train_list.txt
+      - ./train_data/layout/train.json
     transforms:
       - DecodeImage:
           img_mode: BGR
@@ -77,7 +77,7 @@ Eval:
     name: SimpleDataSet
     data_dir: ./train_data/layout
     label_file_list:
-      - ./train_data/cls/val_list.txt
+      - ./train_data/layout/val.json
     transforms:
       - DecodeImage: # load image
           img_mode: BGR

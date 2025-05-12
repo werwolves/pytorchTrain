@@ -17,7 +17,10 @@ class BaseModel(nn.Module):
         else:
             self.use_backbone = True
             self.backbone = build_backbone(config['Backbone'])  # backbone 是一个模型
-            in_channels = self.backbone.out_channels
+            try:
+                in_channels = self.backbone.out_channels
+            except:
+                in_channels = 2
             
         # ---------- 有关 neck 的配置 ----------
         if 'Neck' not in config or config['Neck'] is None:

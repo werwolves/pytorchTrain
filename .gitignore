@@ -9,4 +9,6 @@ laboratory/*
 train_data/layout/*
 !train_data/layout/gen_train_layout.ipynb
 
+weights/*
+
 

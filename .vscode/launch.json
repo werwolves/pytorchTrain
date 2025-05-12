@@ -12,7 +12,8 @@
             "program": "tools/train.py",
             "args": [
                 "--config",
-                "config/cls/cls_mv3.yml",
+                "config/layout/ser_mv3.yml",
+                // "config/cls/cls_mv3.yml",
 
             ],
             "pythonPath": "D:/anaconda/envs/DIFFUIR/python.exe",
