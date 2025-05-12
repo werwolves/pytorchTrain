@@ -1,7 +1,7 @@
 
 from .iaa_augment import IaaAugmenter
 from .operators import DecodeImage, KeepKeys
-from .label_ops import ClsLabelEncode
+from .label_ops import ClsLabelEncode, LayoutEncode 
 from .rec_img_aug import BaseDataAugmentation, ClsResizeImg
 from .randaugment import RandAugment
 def transform(data, ops=None):
@@ -26,6 +26,7 @@ def create_operators(op_list, global_config=None):
         "IaaAugmenter", "DecodeImage", 
         "ClsLabelEncode", "RandAugment",
         "BaseDataAugmentation", "ClsResizeImg",
+        "LayoutEncode",
         "KeepKeys"
     ]
     assert isinstance(op_list, list), "The op_list should be list!"
@@ -39,7 +40,7 @@ def create_operators(op_list, global_config=None):
             "The op {} is not in support list: {}".format(op_name, support_list)
         param = {} if op[op_name] is None else op[op_name]
         try:
-             operator = eval(op_name)(**param)
+            operator = eval(op_name)(**param)
         except Exception as e:
             print(f"Error in creating operator {op_name}: {e}")
             continue
