@@ -45,7 +45,8 @@ class Trainer:
         # 保存模型的路径
         self.model_save_dir = config["Global"].get('output_dir', None)
         # 训练模型所使用的设备
-        self.device = config.get('device', 'cuda')
+        # self.device = config.get('device', 'cuda')
+        self.device = config.get('device', 'cpu')
         # 记录训练过程的
         # self.loss_history = config.get('loss_history', None)
         # self.loss_history = LossHistory(self.model_save_dir, self.model, config['Global']['image_shape'][1:])
@@ -79,13 +80,13 @@ class Trainer:
             # batch_data[0], batch_data[1] = batch_data[0].to(self.device), batch_data[1].to(self.device)
             
             inputs = {
-                "input_ids": batch_data[0].to(self.device),
-                "bbox": batch_data[1].to(self.device),
-                "attention_mask": batch_data[2].to(self.device),       
-                "pixel_values":  batch_data[3].to(self.device),
-                "labels": batch_data[4].to(self.device)
+                "input_ids": batch_data[0][0].to(self.device),
+                "bbox": batch_data[1][0].to(self.device),
+                "attention_mask": batch_data[2][0].to(self.device),       
+                "pixel_values":  batch_data[3][0].to(self.device),
+                "labels": batch_data[4][0].to(self.device)
             }
-            
+            inputs_copy = inputs.copy()
             # labels = batch_data[4].to(self.device)
             
             # ** 固定写法1 ====》 清空梯度
@@ -99,20 +100,20 @@ class Trainer:
                     # 模型前向传播
                     pred = self.model(batch_data[0])
                     # 计算损失
-            loss = self.loss_fn(pred, batch_data[1])
+            # loss = self.loss_fn(pred, batch_data[1])
         
-            post_result = self.post_process(pred.logits, inputs["labels"])
+            # post_result = self.post_process(pred.logits, inputs_copy["labels"])
             # ** 固定写法2 ====》 反向传播
             # loss = loss["loss"]
-            loss.backward()
+            pred.loss.backward()
             if self.is_clip_grad:
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
             ## ** 固定写法3 ====》 更新参数
             self.optimizer.step()
-            train_loss += loss.item()
+            train_loss += pred.loss.item()
             train_pbar.set_postfix(**{'loss': train_loss / (iteration + 1),
                                        'lr': self.optimizer.param_groups[0]['lr'],
-                                       "train_acc": self.metric(post_result)["acc"],
+                                       "train_acc": 1, #self.metric(post_result)["acc"],
                                       })
             train_pbar.update(1)
         # 当一个 epoch训练完成后，关闭进程条
@@ -132,11 +133,11 @@ class Trainer:
             
             
             inputs = {
-                "input_ids": batch_data[0].to(self.device),
-                "bbox": batch_data[1].to(self.device),
-                "attention_mask": batch_data[2].to(self.device),       
-                "pixel_values":  batch_data[3].to(self.device),
-                "labels": batch_data[4].to(self.device)
+                "input_ids": batch_data[0][0].to(self.device),
+                "bbox": batch_data[1][0].to(self.device),
+                "attention_mask": batch_data[2][0].to(self.device),       
+                "pixel_values":  batch_data[3][0].to(self.device),
+                "labels": batch_data[4][0].to(self.device)
             }
             
             
@@ -150,7 +151,7 @@ class Trainer:
                         # 模型前向传播
                         pred = self.model(batch_data[0])
                         # 计算损失
-                loss = self.loss_fn(pred.logits, inputs["labels"])
+                # loss = self.loss_fn(pred.logits, inputs["labels"])
                 post_result = self.post_process(pred, batch_data)
                 
                 # self.metric(post_result)

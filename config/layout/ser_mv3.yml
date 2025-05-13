@@ -84,6 +84,7 @@ Eval:
           channel_first: False
       - LayoutEncode: # Class handling label
           label_list: *label_list 
+          max_seq_len: 512
       - ClsResizeImg:
           image_shape: [3, 224, 224]
       - KeepKeys:
