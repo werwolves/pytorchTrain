@@ -75,19 +75,30 @@ class Trainer:
         self.model = self.model.to(self.device)  # 将模型移动到指定设备上
         for iteration, batch_data in enumerate(self.train_data_loader):
             # 数据可能还有其他的标签，根据不同的模型，需要做出不同的修改。这里假设 训练数据集的标签是img和label
-            batch_data[0], batch_data[1] = batch_data[0].to(self.device), batch_data[1].to(self.device)
+            # batch_data[0], batch_data[1] = batch_data[0].to(self.device), batch_data[1].to(self.device)
+            
+            inputs = {
+                "input_ids": batch_data[0].to(self.device),
+                "bbox": batch_data[1].to(self.device),
+                "attention_mask": batch_data[2].to(self.device),       
+                "pixel_values":  batch_data[3].to(self.device)
+            }
+            
+            labels = batch_data[4].to(self.device)
             
             # ** 固定写法1 ====》 清空梯度
             self.optimizer.zero_grad()  
             if not self.is_fp16:
-                pred = self.model(batch_data[0])
+                # pred = self.model(**inputs, labels=labels)
+                pred = self.model(**inputs, labels=labels)
             else:
                 with torch.cuda.amp.autocast():
                     # 模型前向传播
                     pred = self.model(batch_data[0])
                     # 计算损失
             loss = self.loss_fn(pred, batch_data[1])
-            post_result = self.post_process(pred, batch_data)
+        
+            post_result = self.post_process(pred.logits, labels)
             # ** 固定写法2 ====》 反向传播
             # loss = loss["loss"]
             loss.backward()
@@ -114,17 +125,28 @@ class Trainer:
         # 判断是否需要保存模型
         for iteration, batch_data in enumerate(self.val_data_loader):
             # 数据可能还有其他的标签，根据不同的模型，需要做出不同的修改。这里假设 训练数据集的标签是img和label
-            batch_data[0], batch_data[1] = batch_data[0].to(self.device), batch_data[1].to(self.device)
+            # batch_data[0], batch_data[1] = batch_data[0].to(self.device), batch_data[1].to(self.device)
+            
+            
+            inputs = {
+                "input_ids": batch_data[0].to(self.device),
+                "bbox": batch_data[1].to(self.device),
+                "attention_mask": batch_data[2].to(self.device),       
+                "pixel_values":  batch_data[3].to(self.device)
+            }
+            
+            labels = batch_data[4].to(self.device)
+            
             
             with torch.no_grad():
                 if not self.is_fp16:
-                    pred = self.model(batch_data[0])
+                    pred = self.model(**inputs)
                 else:
                     with torch.cuda.amp.autocast():
                         # 模型前向传播
                         pred = self.model(batch_data[0])
                         # 计算损失
-                loss = self.loss_fn(pred, batch_data[1])
+                loss = self.loss_fn(pred.logits, labels)
                 post_result = self.post_process(pred, batch_data)
                 
                 # self.metric(post_result)

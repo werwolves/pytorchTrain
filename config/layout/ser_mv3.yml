@@ -69,7 +69,7 @@ Train:
   loader:
     shuffle: True
     drop_last: True
-    batch_size: 12
+    batch_size: 1
     num_workers: 0
 
 Eval:
@@ -91,5 +91,5 @@ Eval:
   loader:
     shuffle: False
     drop_last: False
-    batch_size: 12
+    batch_size: 1
     num_workers: 0

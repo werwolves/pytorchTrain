@@ -8,6 +8,6 @@ class LayoutLMV3(nn.Module):
         config.num_labels = kwargs.get("num_labels", 2)
         self.model = LayoutLMv3ForSequenceClassification.from_pretrained("microsoft/layoutlmv3-base", config=config, cache_dir="weights/layoutlmv3")   
         
-    def forwards(self, inputs):
-        outputs = self.model(**inputs)
+    def forward(self, inputs):
+        outputs = self.model(inputs)
         return outputs
