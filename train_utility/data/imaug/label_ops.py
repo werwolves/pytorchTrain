@@ -1,5 +1,5 @@
 import torch
-
+import numpy as np
 
 class ClsLabelEncode:
     def __init__(self, label_list, **kwargs):
@@ -30,13 +30,24 @@ class LayoutEncode:
             words_list.append(label["transcription"].strip())
             boxes_list.append(label["points"])
             # TODO: boxes_list 是一个二维列表，需要将其转换为一维列表
-            classes_list.append(label["class"])
-        boxes_list = [box for sublist in boxes_list for box in sublist]
-        encoding = self.processor(data['image'], words_list, boxes=boxes_list, return_tensors="pt")
+            classes_list.append(self.label_list.index(label["class"].strip().upper()))
+        # -----------------------------------------
+        new_format_boxes_list = []
+        for box in boxes_list:
+            tem_np_box = np.array(box)
+            left, top = min(tem_np_box[:,0]), min(tem_np_box[:,1])
+            right, botton = max(tem_np_box[:,0]), max(tem_np_box[:,1])
+            
+            new_format_boxes_list.append([left, top, right, botton])
+            
+            
+            
+        # -----------------------------------------
+        encoding = self.processor(data['image'], words_list, boxes=new_format_boxes_list, return_tensors="pt")
         
         data["input_ids"] = encoding["input_ids"]
         data["bbox"] = encoding["bbox"]
         data["attention_mask"] = encoding["attention_mask"]
         data["pixel_values"] = encoding["pixel_values"]
-        data["classes"] = torch.tensor(classes_list["classes"],dtype=torch.long)
+        data["classes"] = torch.tensor(classes_list, dtype=torch.long)
         return data
