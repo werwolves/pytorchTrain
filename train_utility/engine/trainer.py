@@ -48,10 +48,11 @@ class Trainer:
         self.device = config.get('device', 'cuda')
         # 记录训练过程的
         # self.loss_history = config.get('loss_history', None)
-        self.loss_history = LossHistory(self.model_save_dir, self.model, config['Global']['image_shape'][1:])
+        # self.loss_history = LossHistory(self.model_save_dir, self.model, config['Global']['image_shape'][1:])
+        self.loss_history = None 
         
         # assert self.check_attribute(), "模型训练所需的参数未设置完整！"
-        self.model.to(self.device)  # 将模型移动到指定设备上
+        self.model = self.model.to(self.device)  # 将模型移动到指定设备上
         
         
         
@@ -72,7 +73,7 @@ class Trainer:
         
         # -------------------------------------------------  进入模型 训练阶段--------------------------------------------------
         self.model.train()
-        self.model = self.model.to(self.device)  # 将模型移动到指定设备上
+        # self.model = self.model.to(self.device)  # 将模型移动到指定设备上
         for iteration, batch_data in enumerate(self.train_data_loader):
             # 数据可能还有其他的标签，根据不同的模型，需要做出不同的修改。这里假设 训练数据集的标签是img和label
             # batch_data[0], batch_data[1] = batch_data[0].to(self.device), batch_data[1].to(self.device)
@@ -81,16 +82,18 @@ class Trainer:
                 "input_ids": batch_data[0].to(self.device),
                 "bbox": batch_data[1].to(self.device),
                 "attention_mask": batch_data[2].to(self.device),       
-                "pixel_values":  batch_data[3].to(self.device)
+                "pixel_values":  batch_data[3].to(self.device),
+                "labels": batch_data[4].to(self.device)
             }
             
-            labels = batch_data[4].to(self.device)
+            # labels = batch_data[4].to(self.device)
             
             # ** 固定写法1 ====》 清空梯度
             self.optimizer.zero_grad()  
             if not self.is_fp16:
                 # pred = self.model(**inputs, labels=labels)
-                pred = self.model(**inputs, labels=labels)
+                # pred = self.model(inputs, labels=labels)
+                pred = self.model(inputs)
             else:
                 with torch.cuda.amp.autocast():
                     # 模型前向传播
@@ -98,7 +101,7 @@ class Trainer:
                     # 计算损失
             loss = self.loss_fn(pred, batch_data[1])
         
-            post_result = self.post_process(pred.logits, labels)
+            post_result = self.post_process(pred.logits, inputs["labels"])
             # ** 固定写法2 ====》 反向传播
             # loss = loss["loss"]
             loss.backward()
@@ -132,21 +135,22 @@ class Trainer:
                 "input_ids": batch_data[0].to(self.device),
                 "bbox": batch_data[1].to(self.device),
                 "attention_mask": batch_data[2].to(self.device),       
-                "pixel_values":  batch_data[3].to(self.device)
+                "pixel_values":  batch_data[3].to(self.device),
+                "labels": batch_data[4].to(self.device)
             }
             
-            labels = batch_data[4].to(self.device)
+            
             
             
             with torch.no_grad():
                 if not self.is_fp16:
-                    pred = self.model(**inputs)
+                    pred = self.model(inputs)
                 else:
                     with torch.cuda.amp.autocast():
                         # 模型前向传播
                         pred = self.model(batch_data[0])
                         # 计算损失
-                loss = self.loss_fn(pred.logits, labels)
+                loss = self.loss_fn(pred.logits, inputs["labels"])
                 post_result = self.post_process(pred, batch_data)
                 
                 # self.metric(post_result)

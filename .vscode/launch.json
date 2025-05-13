@@ -16,7 +16,8 @@
                 // "config/cls/cls_mv3.yml",
 
             ],
-            "pythonPath": "D:/anaconda/envs/DIFFUIR/python.exe",
+            // "pythonPath": "D:/anaconda/envs/DIFFUIR/python.exe",
+            "pythonPath": "D:/anaconda/envs/DiffTSR/python.exe",
             "console": "integratedTerminal"
         }
     ]
