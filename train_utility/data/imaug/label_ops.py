@@ -16,7 +16,7 @@ class ClsLabelEncode:
 class LayoutEncode:
     def __init__(self, label_list, **kwargs):
         from transformers import  LayoutLMv3Processor 
-        self.processor = LayoutLMv3Processor.from_pretrained("microsoft/layoutlmv3-base", apply_ocr=False)
+        self.processor = LayoutLMv3Processor.from_pretrained("microsoft/layoutlmv3-large", apply_ocr=False)
         self.label_list = label_list
         self.max_seq_length = kwargs.get("max_seq_length", 512)
     def rescale_bboxes(self, boxes, width, height):

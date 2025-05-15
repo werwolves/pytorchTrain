@@ -1,6 +1,6 @@
 Global:
   epoch_num: 500
-  output_dir: ./output/cls_mv4
+  output_dir: ./output/ser_mv3
   batch_size: 64
   image_shape: [3, 224, 224]
   pretrained: 
@@ -62,14 +62,14 @@ Train:
           label_list: *label_list # Class handling label
       - BaseDataAugmentation:
       - RandAugment:
-      - ClsResizeImg:  
-          image_shape: [3, 224, 224]
+      # - ClsResizeImg:  
+      #     image_shape: [3, 224, 224]
       - KeepKeys:
           keep_keys: ['input_ids', 'bbox', 'attention_mask','pixel_values','classes'] # dataloader will return list in this order
   loader:
     shuffle: True
     drop_last: True
-    batch_size: 1
+    batch_size: 16
     num_workers: 0
 
 Eval:
@@ -85,12 +85,12 @@ Eval:
       - LayoutEncode: # Class handling label
           label_list: *label_list 
           max_seq_len: 512
-      - ClsResizeImg:
-          image_shape: [3, 224, 224]
+      # - ClsResizeImg:
+      #     image_shape: [3, 224, 224]
       - KeepKeys:
           keep_keys: ['input_ids', 'bbox', 'attention_mask','pixel_values','classes'] # dataloader will return list in this order
   loader:
     shuffle: False
     drop_last: False
-    batch_size: 1
+    batch_size: 16
     num_workers: 0

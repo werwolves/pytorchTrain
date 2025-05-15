@@ -45,12 +45,12 @@ class Trainer:
         # 保存模型的路径
         self.model_save_dir = config["Global"].get('output_dir', None)
         # 训练模型所使用的设备
-        # self.device = config.get('device', 'cuda')
-        self.device = config.get('device', 'cpu')
+        self.device = config.get('device', 'cuda:0')
+        # self.device = config.get('device', 'cpu')
         # 记录训练过程的
         # self.loss_history = config.get('loss_history', None)
-        # self.loss_history = LossHistory(self.model_save_dir, self.model, config['Global']['image_shape'][1:])
-        self.loss_history = None 
+        self.loss_history = LossHistory(self.model_save_dir, self.model, config['Global']['image_shape'][1:])
+        # self.loss_history = None 
         
         # assert self.check_attribute(), "模型训练所需的参数未设置完整！"
         self.model = self.model.to(self.device)  # 将模型移动到指定设备上
@@ -152,7 +152,7 @@ class Trainer:
                         pred = self.model(batch_data[0])
                         # 计算损失
                 # loss = self.loss_fn(pred.logits, inputs["labels"])
-                post_result = self.post_process(pred, batch_data)
+                # post_result = self.post_process(pred, batch_data)
                 
                 # self.metric(post_result)
                 # acc = self.metric.get_metric()
@@ -160,10 +160,10 @@ class Trainer:
                 
                 
                 
-            val_loss += loss.item()
+            val_loss += pred.loss.item()
             val_pbar.set_postfix(**{
                 'val_loss': val_loss / (iteration + 1),
-                "val_acc": self.metric(post_result)["acc"],
+                "val_acc": 1, # self.metric(post_result)["acc"],
             })  
             val_pbar.update(1)
         # 当一个 epoch验证完成后，关闭进程条

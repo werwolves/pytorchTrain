@@ -4,9 +4,9 @@ from transformers import LayoutLMv3Config, LayoutLMv3ForTokenClassification, Lay
 class LayoutLMV3_ous(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
-        config = LayoutLMv3Config.from_pretrained("microsoft/layoutlmv3-base")
+        config = LayoutLMv3Config.from_pretrained("microsoft/layoutlmv3-large")
         config.num_labels = kwargs.get("num_labels", 2)
-        self.model1 = LayoutLMv3ForTokenClassification.from_pretrained("microsoft/layoutlmv3-base", config=config, cache_dir="weights/layoutlmv3")   
+        self.model1 = LayoutLMv3ForTokenClassification.from_pretrained("microsoft/layoutlmv3-large", config=config, cache_dir="weights/layoutlmv3-large")   
         
     def forward(self, inputs):
         if 'labels' in inputs:
