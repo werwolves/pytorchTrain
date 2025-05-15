@@ -1,7 +1,7 @@
 
 from .iaa_augment import IaaAugmenter
 from .operators import DecodeImage, KeepKeys
-from .label_ops import ClsLabelEncode, LayoutEncode 
+from .label_ops import ClsLabelEncode, LayoutEncode, LayoutEncode_zh 
 from .rec_img_aug import BaseDataAugmentation, ClsResizeImg
 from .randaugment import RandAugment
 def transform(data, ops=None):
@@ -26,7 +26,7 @@ def create_operators(op_list, global_config=None):
         "IaaAugmenter", "DecodeImage", 
         "ClsLabelEncode", "RandAugment",
         "BaseDataAugmentation", "ClsResizeImg",
-        "LayoutEncode",
+        "LayoutEncode","LayoutEncode_zh",
         "KeepKeys"
     ]
     assert isinstance(op_list, list), "The op_list should be list!"
