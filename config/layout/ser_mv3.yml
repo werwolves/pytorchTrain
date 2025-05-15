@@ -58,7 +58,7 @@ Train:
       - DecodeImage:
           img_mode: BGR
           channel_first: False
-      - LayoutEncode: 
+      - LayoutEncode_zh: 
           label_list: *label_list # Class handling label
       - BaseDataAugmentation:
       - RandAugment:
