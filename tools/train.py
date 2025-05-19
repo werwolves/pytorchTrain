@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(__dir__, '..')))
 
 from train_utility.engine.trainer import Trainer
 # from train_utility.engine.callbacks import LossHistory
-from tools.utility import ArgsParser, Config
+from utility import ArgsParser, Config
 
 def parse_args():
     parser = ArgsParser()

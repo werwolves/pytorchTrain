@@ -17,7 +17,7 @@
 
             ],
             // "pythonPath": "D:/anaconda/envs/DIFFUIR/python.exe",
-            "pythonPath": "D:/anaconda/envs/DiffTSR/python.exe",
+            "pythonPath": "/home/lenovo/anaconda3/envs/pt/bin/python",
             "console": "integratedTerminal"
         }
     ]

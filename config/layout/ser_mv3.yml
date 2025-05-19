@@ -9,7 +9,7 @@ Global:
 Architecture:
   Backbone: 
     name: LayoutLMV3_zh # ResNet18 #ResNet # MobileNetV3
-    num_labels: 6
+    num_labels: 13
     # model_name: small
     # scale: 0.35
   Neck:
@@ -60,12 +60,12 @@ Train:
           channel_first: False
       - LayoutEncode_zh: 
           label_list: *label_list # Class handling label
-      - BaseDataAugmentation:
-      - RandAugment:
+      # - BaseDataAugmentation:
+      # - RandAugment:
       # - ClsResizeImg:  
       #     image_shape: [3, 224, 224]
       - KeepKeys:
-          keep_keys: ['input_ids', 'bbox', 'attention_mask','pixel_values','classes'] # dataloader will return list in this order
+          keep_keys: ['input_ids', 'bbox', 'attention_mask','image','labels'] # dataloader will return list in this order
   loader:
     shuffle: True
     drop_last: True
@@ -88,7 +88,7 @@ Eval:
       # - ClsResizeImg:
       #     image_shape: [3, 224, 224]
       - KeepKeys:
-          keep_keys: ['input_ids', 'bbox', 'attention_mask','pixel_values','classes'] # dataloader will return list in this order
+          keep_keys: ['input_ids', 'bbox', 'attention_mask','image','labels'] # dataloader will return list in this order
   loader:
     shuffle: False
     drop_last: False

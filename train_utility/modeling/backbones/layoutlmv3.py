@@ -22,9 +22,9 @@ class LayoutLMV3_zh(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
         config = AutoConfig.from_pretrained("microsoft/layoutlmv3-base-chinese",num_labels=kwargs.get("num_labels", 2),
-                                            cache_dir="./weights/layoutlmv3-base-chinese")
+                                            cache_dir="./weights/layoutlmv3-base-chinese-new")
         self.model = AutoModelForTokenClassification.from_pretrained("microsoft/layoutlmv3-base-chinese",config=config,
-                                            cache_dir="./weights/layoutlmv3-base-chinese")
+                                            cache_dir="./weights/layoutlmv3-base-chinese-new")
         
     def forward(self, inputs):
         if 'labels' in inputs:
