@@ -169,6 +169,19 @@ class LayoutEncode_zh:
 
         return ''.join(result)
     
+    def get_segment_ids(self, bboxs): # bboxs=[   [0, 0, 0, 0]] + total_bboxs[i][start: end] + [[1000, 1000, 1000, 1000]   ]
+        segment_ids = []              #       [         0,                1, 2, 3,                                  ]    
+        for i in range(len(bboxs)):
+            if i == 0:
+                segment_ids.append(0)
+            else:
+                if bboxs[i - 1] == bboxs[i]:
+                    segment_ids.append(segment_ids[-1])
+                else:
+                    segment_ids.append(segment_ids[-1] + 1)
+        return segment_ids
+    
+    
     def __call__(self, data):
         # --- 这里是准对一篇文档的 数据处理，在设立专指  一张书脊图像上的数据处理
         
@@ -272,6 +285,9 @@ class LayoutEncode_zh:
         input_ids_padding = [self.tokenizer.cls_token_id] +  input_ids + [self.tokenizer.pad_token_id] * difference + [self.tokenizer.sep_token_id]
         attention_mask_padding = [0] + attention_mask + [0] * difference + [0]
         bbox_padding = [[0,0,0,0]] + bbox + [[0,0,0,0]] * difference + [[1000, 1000, 1000, 1000]]
+        cur_segment_ids = self.get_segment_ids(bbox_padding[-1])
+        
+        
         token_type_ids_padding = [0] + token_type_ids + [self.tokenizer.pad_token_type_id] * difference + [0]
         labels_padding = [-100] + labels + [self.pad_token_label_id] * difference  + [-100]
         
@@ -286,6 +302,7 @@ class LayoutEncode_zh:
         data["token_type_ids"] = token_type_ids_padding
         data["input_ids"] = input_ids_padding
         data["bbox"] = bbox_padding
+        data["segment_ids"] = cur_segment_ids
         data["labels"] = labels_padding
         # data["image"] = data["image"][None, :, :, :]  # 这里是为了将数据转换为 [1,3,224,224] 的格式
         for key in data:
@@ -293,6 +310,7 @@ class LayoutEncode_zh:
                         "input_ids",
                         "labels",
                         "token_type_ids",
+                        "segment_ids",
                         "bbox",
                         "attention_mask",
                         ]:

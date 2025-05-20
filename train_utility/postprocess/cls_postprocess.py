@@ -1,19 +1,19 @@
-import torch
-
+import torch   
+import numpy as np
 __all__ = ["ClsPostProcess"]
 
-class ClsPostProcess:
+class ClsPostProcess_old:
    """ 在推理后，对模型输出进行后处理"""
    def __init__(self,label_list=None, **kwargs):
       super().__init__(**kwargs)
       self.label_list = label_list  # 标签列表 eg: ['dog', 'cat']
       
    def __call__(self, preds, batch=None, *args, **kwargs):
-      if 'res' in preds:
-         preds = preds['res']
+      # if 'res' in preds:
+      #    preds = preds['res']
       if isinstance(preds, torch.Tensor):
          preds = preds.detach().cpu().numpy()
-      preds_idx = preds.argmax(axis=1)
+      preds_idx = preds.argmax(axis=-1)
       
       if self.label_list is not None:
          self.label_list = {i:i for i in range(preds.shape[-1])} # {0:0, 1:1}
@@ -24,5 +24,22 @@ class ClsPostProcess:
        
       return decode_out, [(self.label_list[i], 1.0) for i in batch[1].detach().cpu().numpy() ]
       
+class ClsPostProcess:
+   """ 在推理后，对模型输出进行后处理"""
+   def __init__(self,label_list=None, **kwargs):
+      super().__init__(**kwargs)
+      self.label_list = label_list  # 标签列表 eg: ['dog', 'cat']
       
-      
+   def __call__(self, preds, labels, *args, **kwargs):
+      # if 'res' in preds:
+      #    preds = preds['res']
+      if isinstance(preds, torch.Tensor):
+         preds = preds.detach().cpu().numpy()
+      if isinstance(labels, torch.Tensor):
+         labels = labels.detach().cpu().numpy()         
+         
+      preds_idx = preds.argmax(axis=-1)
+      equal_elements = np.equal(preds_idx, labels)
+      num_equal = np.sum(equal_elements)
+      accuracy = num_equal / labels.size
+      return accuracy

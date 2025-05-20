@@ -84,10 +84,11 @@ class Trainer:
                 "bbox": batch_data[1].to(self.device),
                 "attention_mask": batch_data[2].to(self.device),       
                 "pixel_values":  batch_data[3].to(self.device),
-                "labels": batch_data[4].to(self.device)
+                # "segment_ids": batch_data[4].to(self.device),
+                # "labels": batch_data[4].to(self.device)
             }
             inputs_copy = inputs.copy()
-            # labels = batch_data[4].to(self.device)
+            labels = batch_data[4].to(self.device)
             
             # ** 固定写法1 ====》 清空梯度
             self.optimizer.zero_grad()  
@@ -100,20 +101,20 @@ class Trainer:
                     # 模型前向传播
                     pred = self.model(batch_data[0])
                     # 计算损失
-            # loss = self.loss_fn(pred, batch_data[1])
+            loss = self.loss_fn(pred, labels)
         
-            # post_result = self.post_process(pred.logits, inputs_copy["labels"])
+            post_result = self.post_process(pred.logits, labels)
             # ** 固定写法2 ====》 反向传播
             # loss = loss["loss"]
-            pred.loss.backward()
+            loss.backward()
             if self.is_clip_grad:
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
             ## ** 固定写法3 ====》 更新参数
             self.optimizer.step()
-            train_loss += pred.loss.item()
+            train_loss += loss.item()
             train_pbar.set_postfix(**{'loss': train_loss / (iteration + 1),
                                        'lr': self.optimizer.param_groups[0]['lr'],
-                                       "train_acc": 1, #self.metric(post_result)["acc"],
+                                      "train_acc": post_result # self.metric(post_result),
                                       })
             train_pbar.update(1)
         # 当一个 epoch训练完成后，关闭进程条
@@ -137,9 +138,10 @@ class Trainer:
                 "bbox": batch_data[1].to(self.device),
                 "attention_mask": batch_data[2].to(self.device),       
                 "pixel_values":  batch_data[3].to(self.device),
-                "labels": batch_data[4].to(self.device)
+                # "segment_ids": batch_data[4].to(self.device),
+                # "labels": batch_data[4].to(self.device)
             }
-            
+            labels = batch_data[4].to(self.device)
             
             
             
@@ -151,8 +153,8 @@ class Trainer:
                         # 模型前向传播
                         pred = self.model(batch_data[0])
                         # 计算损失
-                # loss = self.loss_fn(pred.logits, inputs["labels"])
-                # post_result = self.post_process(pred, batch_data)
+                loss = self.loss_fn(pred, labels)
+                post_result = self.post_process(pred.logits, labels)
                 
                 # self.metric(post_result)
                 # acc = self.metric.get_metric()
@@ -160,10 +162,10 @@ class Trainer:
                 
                 
                 
-            val_loss += pred.loss.item()
+            val_loss += loss.item()
             val_pbar.set_postfix(**{
                 'val_loss': val_loss / (iteration + 1),
-                "val_acc": 1, # self.metric(post_result)["acc"],
+                "val_acc": post_result, # self.metric(post_result)["acc"],
             })  
             val_pbar.update(1)
         # 当一个 epoch验证完成后，关闭进程条
