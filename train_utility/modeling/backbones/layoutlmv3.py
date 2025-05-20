@@ -34,3 +34,5 @@ class LayoutLMV3_zh(nn.Module):
         else:
             outputs = self.model(**inputs)
         return outputs
+    
+    

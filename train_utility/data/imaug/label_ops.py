@@ -282,14 +282,15 @@ class LayoutEncode_zh:
             labels.extend(cur_text_label)
         # -------------------------- 对该文档中的所有token进行拼接 begin
         difference = self.max_seq_length - len(input_ids) - 2
-        input_ids_padding = [self.tokenizer.cls_token_id] +  input_ids + [self.tokenizer.pad_token_id] * difference + [self.tokenizer.sep_token_id]
-        attention_mask_padding = [0] + attention_mask + [0] * difference + [0]
-        bbox_padding = [[0,0,0,0]] + bbox + [[0,0,0,0]] * difference + [[1000, 1000, 1000, 1000]]
+        input_ids_padding = [self.tokenizer.cls_token_id]  + [self.tokenizer.sep_token_id] +  input_ids + [self.tokenizer.pad_token_id] * difference
+        attention_mask_padding = [1] + attention_mask + [1] + [0] * difference 
+        # bbox_padding = [[0,0,0,0]] + bbox + [[1000, 1000, 1000, 1000]] + [[0,0,0,0]] * difference 
+        bbox_padding = [[0,0,0,0]] + bbox + [[0, 0, 0, 0]] + [[0,0,0,0]] * difference 
         cur_segment_ids = self.get_segment_ids(bbox_padding[-1])
         
         
-        token_type_ids_padding = [0] + token_type_ids + [self.tokenizer.pad_token_type_id] * difference + [0]
-        labels_padding = [-100] + labels + [self.pad_token_label_id] * difference  + [-100]
+        token_type_ids_padding = [0] + token_type_ids + [0] + [self.tokenizer.pad_token_type_id] * difference 
+        labels_padding = [-100] + labels + [-100] + [self.pad_token_label_id] * difference  
         
         # TODO: 当文档中的数据过长时，需要添加额外的处理逻辑
         
