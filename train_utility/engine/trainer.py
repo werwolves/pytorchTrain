@@ -55,6 +55,65 @@ class Trainer:
         # assert self.check_attribute(), "模型训练所需的参数未设置完整！"
         self.model = self.model.to(self.device)  # 将模型移动到指定设备上
         
+        weight_path = config["Global"].get('pretrained', None)
+        if weight_path is not None and os.path.exists(weight_path):
+            print(f"Loading pretrained model from {weight_path}")
+            self.model.load_state_dict(torch.load(weight_path, map_location=self.device), strict=False)
+        
+    def val_only(self):
+        # -------------------------------------------------  进入模型 验证阶段--------------------------------------------------
+        # 进入验证模型
+        print("Start validating...")
+        val_pbar = tqdm(total=len(self.val_data_loader), desc=f"Validation epoch:{cur_epoch}/{self.epoch_num}",  postfix=dict, mininterval=0.3)
+        self.model.eval()
+        # 判断是否需要保存模型
+        for iteration, batch_data in enumerate(self.val_data_loader):
+            # 数据可能还有其他的标签，根据不同的模型，需要做出不同的修改。这里假设 训练数据集的标签是img和label
+            # batch_data[0], batch_data[1] = batch_data[0].to(self.device), batch_data[1].to(self.device)
+            inputs = {
+                "input_ids": batch_data[0].to(self.device),
+                "bbox": batch_data[1].to(self.device),
+                "attention_mask": batch_data[2].to(self.device),       
+                "pixel_values":  batch_data[3].to(self.device),
+
+            }
+            labels = batch_data[4].to(self.device)
+            
+            
+            
+            with torch.no_grad():
+                if not self.is_fp16:
+                    pred = self.model(inputs)
+                else:
+                    with torch.cuda.amp.autocast():
+                        # 模型前向传播
+                        pred = self.model(batch_data[0])
+                        # 计算损失
+                loss = self.loss_fn(pred, labels)
+                post_result = self.post_process(pred.logits, labels)
+                
+
+                
+                
+                
+            val_loss += loss.item()
+            val_pbar.set_postfix(**{
+                'val_loss': val_loss / (iteration + 1),
+                "val_acc":  self.metric(post_result)["acc"],
+            })  
+            val_pbar.update(1)
+        # 当一个 epoch验证完成后，关闭进程条
+        val_pbar.close()
+        print("Validation finished!", "acc:", self.metric.get_metric())
+        # 计算训练和验证的准确率 ---> 判断是否需要保存模型
+        cur_val_loss =  val_loss / len(self.val_data_loader)
+
+        print('Val Loss: %.3f ' % (cur_val_loss))
+        # --------------------------------- 保存权重 --------------------------------
+
+        
+        
+        
         
         
     def check_attribute(self):
@@ -201,7 +260,8 @@ class Trainer:
             # total += batch_data["label"].size(0)
             ...
 
-
+    def val(self):
+        self.model.val_only()
 
 
 

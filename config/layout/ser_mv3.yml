@@ -3,7 +3,7 @@ Global:
   output_dir: ./output/ser_mv3
   batch_size: 64
   image_shape: [3, 224, 224]
-  pretrained: 
+  pretrained: D:\projects\RFID\pytorchTrain\output\ser_mv3\best_epoch_weights.pth
   label_list: &label_list ['TITLE','AUTHOR','PUBLIC','CALL_NO','LIB_NAME','OTHER-1']
 
 Architecture:
