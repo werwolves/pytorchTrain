@@ -9,8 +9,9 @@ class ClsMetric:
         
     def __call__(self, pred_label, *args, **kwds):
         preds, labels = pred_label
-    
-        for (pred, pred_conf),(label, _) in zip(preds, labels):
+
+        # for (pred, pred_conf),(label, _) in zip(preds, labels):
+        for pred, label in zip(preds, labels):
             self.tot_num += 1
             if pred == label:
                 self.correct_num += 1

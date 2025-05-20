@@ -114,7 +114,7 @@ class Trainer:
             train_loss += loss.item()
             train_pbar.set_postfix(**{'loss': train_loss / (iteration + 1),
                                        'lr': self.optimizer.param_groups[0]['lr'],
-                                      "train_acc": post_result # self.metric(post_result),
+                                      "train_acc": self.metric(post_result),
                                       })
             train_pbar.update(1)
         # 当一个 epoch训练完成后，关闭进程条
@@ -165,7 +165,7 @@ class Trainer:
             val_loss += loss.item()
             val_pbar.set_postfix(**{
                 'val_loss': val_loss / (iteration + 1),
-                "val_acc": post_result, # self.metric(post_result)["acc"],
+                "val_acc":  self.metric(post_result)["acc"],
             })  
             val_pbar.update(1)
         # 当一个 epoch验证完成后，关闭进程条

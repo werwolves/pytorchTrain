@@ -4,12 +4,13 @@ import copy
 """
 
 __all__ = ['build_post_process']
-from .cls_postprocess import ClsPostProcess
+from .cls_postprocess import ClsPostProcess, SerPostProcess
 
 
 def build_post_process(config):
     support_list = [  
-        "ClsPostProcess"
+        "ClsPostProcess",
+        "SerPostProcess"
     ]
     
     assert config["name"] in support_list, f"post_process {config['name']} not supported!"

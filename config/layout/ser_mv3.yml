@@ -38,7 +38,7 @@ LRScheduler:
 
 
 PostProcess:
-  name: ClsPostProcess
+  name: SerPostProcess # ClsPostProcess
   label_list: *label_list
 
 #

@@ -1,6 +1,6 @@
 import torch   
 import numpy as np
-__all__ = ["ClsPostProcess"]
+__all__ = ["ClsPostProcess", "SerPostProcess"]
 
 class ClsPostProcess_old:
    """ 在推理后，对模型输出进行后处理"""
@@ -48,3 +48,25 @@ class ClsPostProcess:
     
       accuracy = num_equal / num_valid_labels
       return accuracy
+   
+   
+class SerPostProcess:
+   """ 在推理后，对模型输出进行后处理"""
+   def __init__(self,label_list=None, **kwargs):
+      super().__init__(**kwargs)
+      self.label_list = label_list  # 标签列表 eg: ['dog', 'cat']
+      
+   def __call__(self, preds, labels=None, *args, **kwargs):
+
+      if isinstance(preds, torch.Tensor):
+         preds = preds.detach().cpu().numpy()  # (8, 512, 13)
+      if labels is not None:
+         if isinstance(labels, torch.Tensor):
+            labels = labels.detach().cpu().numpy() # (8, 512)   ====================================>     
+         
+      preds_idx = preds.argmax(axis=-1)  #(8, 512)  =============================================>
+      if labels is not None:
+        mask = labels != -100
+        return preds_idx[mask].tolist(), labels[mask].tolist()
+
+      return preds_idx[mask]
