@@ -34,12 +34,17 @@ class ClsPostProcess:
       # if 'res' in preds:
       #    preds = preds['res']
       if isinstance(preds, torch.Tensor):
-         preds = preds.detach().cpu().numpy()
+         preds = preds.detach().cpu().numpy()  # (8, 512, 13)
       if isinstance(labels, torch.Tensor):
-         labels = labels.detach().cpu().numpy()         
+         labels = labels.detach().cpu().numpy() # (8, 512)        
          
-      preds_idx = preds.argmax(axis=-1)
+      preds_idx = preds.argmax(axis=-1)  #(8, 512)
       equal_elements = np.equal(preds_idx, labels)
-      num_equal = np.sum(equal_elements)
-      accuracy = num_equal / labels.size
+      
+      mask = labels != -100
+      num_equal = np.sum(equal_elements * mask)
+      num_valid_labels = np.sum(mask)
+      
+    
+      accuracy = num_equal / num_valid_labels
       return accuracy
