@@ -64,9 +64,10 @@ class Trainer:
         # -------------------------------------------------  进入模型 验证阶段--------------------------------------------------
         # 进入验证模型
         print("Start validating...")
-        val_pbar = tqdm(total=len(self.val_data_loader), desc=f"Validation epoch:{cur_epoch}/{self.epoch_num}",  postfix=dict, mininterval=0.3)
+        val_pbar = tqdm(total=len(self.val_data_loader),  postfix=dict, mininterval=0.3)
         self.model.eval()
         # 判断是否需要保存模型
+        val_loss = 0.0
         for iteration, batch_data in enumerate(self.val_data_loader):
             # 数据可能还有其他的标签，根据不同的模型，需要做出不同的修改。这里假设 训练数据集的标签是img和label
             # batch_data[0], batch_data[1] = batch_data[0].to(self.device), batch_data[1].to(self.device)
@@ -261,7 +262,7 @@ class Trainer:
             ...
 
     def val(self):
-        self.model.val_only()
+        self.val_only()
 
 
 
