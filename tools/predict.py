@@ -1,5 +1,5 @@
 import os,sys
-
+from collections import OrderedDict
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(__dir__)
 sys.path.insert(0, os.path.abspath(os.path.join(__dir__, '..')))
@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(__dir__, '..')))
 import torch
 import numpy as np
 from rapidocr_onnxruntime import RapidOCR
-from transformers import AutoModelForTokenClassification, AutoConfig
+from transformers import AutoModelForTokenClassification, AutoConfig,AutoTokenizer
 from train_utility.data.imaug.image_utils import RandomResizedCropAndInterpolationWithTwoPic,Compose
 from torchvision import transforms
 
@@ -21,7 +21,23 @@ class Ser_model(object):
                                             cache_dir="./weights/layoutlmv3-base-chinese-new")
         self.model = AutoModelForTokenClassification.from_pretrained("microsoft/layoutlmv3-base-chinese",config=config,
                                             cache_dir="./weights/layoutlmv3-base-chinese-new")
-        self.model.load_state_dict(torch.load(weight_path))
+        model_weight_orderdict = torch.load(weight_path)
+        ordered_dict = OrderedDict()
+        for key, value in model_weight_orderdict.items():
+                if 'backbone' in key:
+                    new_key = key.replace('backbone.', '')
+                    ordered_dict[new_key] = value
+                else:
+                    ordered_dict[key] = value
+        self.model.load_state_dict(ordered_dict, strict=False)
+        self.tokenizer = AutoTokenizer.from_pretrained(
+                                            "microsoft/layoutlmv3-base-chinese",
+                                            tokenizer_file=None,  # avoid loading from a cached file of the pre-trained model in another machine
+                                            cache_dir="./weights/layoutlmv3-base-chinese-new",
+                                            use_fast=True,
+                                            add_prefix_space=True,
+                                                )
+        # self.model.load_state_dict(torch.load(weight_path))
         self.model.eval()
         self.ocr_engine = RapidOCR(det_use_cuda=True, cls_use_cuda=True, rec_use_cuda=True)
         self.max_seq_length = kwargs.get("max_seq_length", 512)
@@ -49,9 +65,12 @@ class Ser_model(object):
         return [rescaled_x0, rescaled_y0, rescaled_x1, rescaled_y1] 
     
     def __call__(self, img):
-        raw_img_w, raw_img_h = img.shape[:2]
-        ocr_infoes = self.ocr_engine(img)
-       
+        # raw_img_w, raw_img_h = img.shape[:2]
+        raw_img_w,raw_img_h = img.size
+        
+        ocr_infoes = self.ocr_engine(img)[0]
+        print("="*10)
+        print(ocr_infoes)
        
         text_ids_list = []
         bbox_list = []
@@ -89,9 +108,9 @@ class Ser_model(object):
         img = self.patch_transform(for_patches)
         inputs = {
             "input_ids": torch.tensor([input_ids_padding], dtype=torch.long).to(self.model.device),
-            "bbox": torch.tensor([bbox_padding], dtype=torch.float).to(self.model.device),
+            "bbox": torch.tensor([bbox_padding], dtype=torch.long).to(self.model.device),
             "attention_mask": torch.tensor([attention_mask_padding], dtype=torch.long).to(self.model.device),
-            "pixel_values": torch.tensor([img], dtype=torch.float).to(self.model.device)
+            "pixel_values": torch.tensor(img.unsqueeze(0), dtype=torch.float).to(self.model.device)
         }
         
         out = self.model(
@@ -100,6 +119,8 @@ class Ser_model(object):
         output = out.logits
         output = torch.argmax(output, dim=2)
         output = output[0].cpu().numpy() # [1, 512]
+        print("-="*10)
+        print(output)
         ###################
         # TODO: 这里需要对 512 长度的类别做处理
         ###################
@@ -110,13 +131,18 @@ class Ser_model(object):
 if __name__ == "__main__":
     # step1: 模型配置相关的
     import cv2
-    im_path = r'D:\projects\RFID\pytorchTrain\train_data\layout\book-spine-tot\n0101003-07-03_15.jpg'
+    from PIL import Image
+    im_path = r'/mnt/disk4/projects/expore/pytorchTrain/train_data/layout/book-spine-tot-part/n0101003-07-03_15.jpg'
     cv_img = cv2.imread(im_path)
+    pil_im = Image.open(im_path)
+    # print("="*10)
+    # print(cv_img.shape)
     # step2: 模型加载
-    model = Ser_model()
+    weight_path = r'/mnt/disk4/projects/expore/pytorchTrain/output/ser_mv3/best_epoch_weights.pth'
+    model = Ser_model(weight_path)
     
     # step3: 数据（送入）模型，处理相关的
-    model(cv_img)
+    model(pil_im)
     
     # step4: 模型输出后处理    
     
