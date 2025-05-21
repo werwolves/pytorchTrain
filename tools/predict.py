@@ -1,11 +1,19 @@
+import os,sys
+
+__dir__ = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(__dir__)
+sys.path.insert(0, os.path.abspath(os.path.join(__dir__, '..')))
+
+
+
 import torch
 import numpy as np
 from rapidocr_onnxruntime import RapidOCR
 from transformers import AutoModelForTokenClassification, AutoConfig
-from .image_utils import RandomResizedCropAndInterpolationWithTwoPic,Compose
+from train_utility.data.imaug.image_utils import RandomResizedCropAndInterpolationWithTwoPic,Compose
 from torchvision import transforms
 
-class model:
+class Ser_model(object):
     """ 模型配置加载相关的 """
     def __init__(self, weight_path, **kwargs):
         # TODO: 模型加载还可以继续优化
@@ -79,12 +87,15 @@ class model:
         
         for_patches, _ = self.common_transform(img, augmentation=False)
         img = self.patch_transform(for_patches)
-        
-        out = self.model(
+        inputs = {
             "input_ids": torch.tensor([input_ids_padding], dtype=torch.long).to(self.model.device),
             "bbox": torch.tensor([bbox_padding], dtype=torch.float).to(self.model.device),
             "attention_mask": torch.tensor([attention_mask_padding], dtype=torch.long).to(self.model.device),
             "pixel_values": torch.tensor([img], dtype=torch.float).to(self.model.device)
+        }
+        
+        out = self.model(
+            **inputs
         )
         output = out.logits
         output = torch.argmax(output, dim=2)
@@ -98,11 +109,14 @@ class model:
 
 if __name__ == "__main__":
     # step1: 模型配置相关的
-    
+    import cv2
+    im_path = r'D:\projects\RFID\pytorchTrain\train_data\layout\book-spine-tot\n0101003-07-03_15.jpg'
+    cv_img = cv2.imread(im_path)
     # step2: 模型加载
-    model = model()
+    model = Ser_model()
     
     # step3: 数据（送入）模型，处理相关的
+    model(cv_img)
     
     # step4: 模型输出后处理    
     
