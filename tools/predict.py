@@ -12,7 +12,13 @@ from rapidocr_onnxruntime import RapidOCR
 from transformers import AutoModelForTokenClassification, AutoConfig,AutoTokenizer
 from train_utility.data.imaug.image_utils import RandomResizedCropAndInterpolationWithTwoPic,Compose
 from torchvision import transforms
-
+import random
+# random.seed(42)
+# np.random.seed(42)
+# torch.manual_seed(42) # 这个设置好像很关键
+# torch.cuda.manual_seed_all(42)
+# torch.backends.cudnn.deterministic = True
+# torch.backends.cudnn.benchmark = False
 class Ser_model(object):
     """ 模型配置加载相关的 """
     def __init__(self, weight_path, **kwargs):
@@ -25,11 +31,11 @@ class Ser_model(object):
         ordered_dict = OrderedDict()
         for key, value in model_weight_orderdict.items():
                 if 'backbone' in key:
-                    new_key = key.replace('backbone.', '')
+                    new_key = key.replace('backbone.model.', '') # new_key = key.replace('backbone.', '') 导致模型加载失败
                     ordered_dict[new_key] = value
                 else:
                     ordered_dict[key] = value
-        self.model.load_state_dict(ordered_dict, strict=False)
+        self.model.load_state_dict(ordered_dict, strict=True)  # 原来 strict=False, 这意味着模型中的一些权重未被正确加载，但是不会报错，这些未初始化的权重在推理时会产生随机的输出
         self.tokenizer = AutoTokenizer.from_pretrained(
                                             "microsoft/layoutlmv3-base-chinese",
                                             tokenizer_file=None,  # avoid loading from a cached file of the pre-trained model in another machine
@@ -43,14 +49,26 @@ class Ser_model(object):
         self.max_seq_length = kwargs.get("max_seq_length", 512)
         
         
-        self.common_transform = Compose([
-            RandomResizedCropAndInterpolationWithTwoPic(
-                size=224
-            ),
+        # self.common_transform = Compose([
+        #     # RandomResizedCropAndInterpolationWithTwoPic(
+        #     #     size=224
+        #     # ),
+            
+        #     transforms.Resize((224, 224), interpolation=transforms.InterpolationMode.BILINEAR),
+        # ])
+        
+        
+        self.common_transform = transforms.Compose([
+            
+            transforms.Resize((224, 224), interpolation=transforms.InterpolationMode.BILINEAR),
         ])
+        
+        
+        
 
         self.patch_transform = transforms.Compose([
             transforms.ToTensor(),
+            
             transforms.Normalize(
                 mean=torch.tensor((0.5, 0.5, 0.5)),
                 std=torch.tensor((0.5, 0.5, 0.5)))
@@ -68,7 +86,8 @@ class Ser_model(object):
         # raw_img_w, raw_img_h = img.shape[:2]
         raw_img_w,raw_img_h = img.size
         
-        ocr_infoes = self.ocr_engine(img)[0]
+        # ocr_infoes = self.ocr_engine(img)[0]
+        ocr_infoes = [[[[1187.0, 27.0], [1212.0, 26.0], [1221.0, 153.0], [1196.0, 154.0]], '上海国书馆', 0.9506524920463562], [[[154.0, 45.0], [592.0, 41.0], [593.0, 124.0], [155.0, 128.0]], '邓小平的智慧', 0.9903642435868582], [[[53.0, 57.0], [103.0, 57.0], [103.0, 91.0], [53.0, 91.0]], '特品', 0.7481847405433655], [[[680.0, 63.0], [857.0, 63.0], [857.0, 98.0], [680.0, 98.0]], '曹应旺主编', 0.9793857216835022], [[[1228.0, 67.0], [1282.0, 66.0], [1282.0, 92.0], [1228.0, 93.0]], '版社', 0.9847131073474884], [[[54.0, 87.0], [103.0, 85.0], [104.0, 117.0], [55.0, 119.0]], '文出', 0.9718954861164093]]
         print("="*10)
         print(ocr_infoes)
        
@@ -104,7 +123,8 @@ class Ser_model(object):
         token_type_ids_padding = [0] + token_type_ids_list + [0] + [self.tokenizer.pad_token_type_id] * difference 
         
         
-        for_patches, _ = self.common_transform(img, augmentation=False)
+        # for_patches, _ = self.common_transform(img, augmentation=False)
+        for_patches= self.common_transform(img)
         img = self.patch_transform(for_patches)
         inputs = {
             "input_ids": torch.tensor([input_ids_padding], dtype=torch.long).to(self.model.device),
@@ -112,15 +132,16 @@ class Ser_model(object):
             "attention_mask": torch.tensor([attention_mask_padding], dtype=torch.long).to(self.model.device),
             "pixel_values": torch.tensor(img.unsqueeze(0), dtype=torch.float).to(self.model.device)
         }
-        
-        out = self.model(
-            **inputs
-        )
+        with torch.no_grad():
+            out = self.model(
+                **inputs
+            )
         output = out.logits
         output = torch.argmax(output, dim=2)
         output = output[0].cpu().numpy() # [1, 512]
         print("-="*10)
-        print(output)
+        print(f'output:{len(output)}',output)
+        print(f'attention_mask_padding:{len(attention_mask_padding)}',attention_mask_padding)
         ###################
         # TODO: 这里需要对 512 长度的类别做处理
         ###################
