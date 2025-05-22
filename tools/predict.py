@@ -115,9 +115,10 @@ class Ser_model(object):
     def __call__(self, img):
         # raw_img_w, raw_img_h = img.shape[:2]
         raw_img_w,raw_img_h = img.size
+        raw_pil_img = img.copy()
         
-        # ocr_infoes = self.ocr_engine(img)[0]
-        ocr_infoes = [[[[1187.0, 27.0], [1212.0, 26.0], [1221.0, 153.0], [1196.0, 154.0]], '上海国书馆', 0.9506524920463562], [[[154.0, 45.0], [592.0, 41.0], [593.0, 124.0], [155.0, 128.0]], '邓小平的智慧', 0.9903642435868582], [[[53.0, 57.0], [103.0, 57.0], [103.0, 91.0], [53.0, 91.0]], '特品', 0.7481847405433655], [[[680.0, 63.0], [857.0, 63.0], [857.0, 98.0], [680.0, 98.0]], '曹应旺主编', 0.9793857216835022], [[[1228.0, 67.0], [1282.0, 66.0], [1282.0, 92.0], [1228.0, 93.0]], '版社', 0.9847131073474884], [[[54.0, 87.0], [103.0, 85.0], [104.0, 117.0], [55.0, 119.0]], '文出', 0.9718954861164093]]
+        ocr_infoes = self.ocr_engine(img)[0]
+        # ocr_infoes = [[[[1187.0, 27.0], [1212.0, 26.0], [1221.0, 153.0], [1196.0, 154.0]], '上海国书馆', 0.9506524920463562], [[[154.0, 45.0], [592.0, 41.0], [593.0, 124.0], [155.0, 128.0]], '邓小平的智慧', 0.9903642435868582], [[[53.0, 57.0], [103.0, 57.0], [103.0, 91.0], [53.0, 91.0]], '特品', 0.7481847405433655], [[[680.0, 63.0], [857.0, 63.0], [857.0, 98.0], [680.0, 98.0]], '曹应旺主编', 0.9793857216835022], [[[1228.0, 67.0], [1282.0, 66.0], [1282.0, 92.0], [1228.0, 93.0]], '版社', 0.9847131073474884], [[[54.0, 87.0], [103.0, 85.0], [104.0, 117.0], [55.0, 119.0]], '文出', 0.9718954861164093]]
         print("="*10)
         print(ocr_infoes)
        
@@ -191,6 +192,30 @@ class Ser_model(object):
                 return None  # 如果列表为空，返回 None
             return max(set(lst), key=lst.count)
         
+        ###################################
+        from PIL import Image, ImageDraw, ImageFont
+        draw = ImageDraw.Draw(raw_pil_img)
+        
+        def draw_bbox(draw, bbox, text, color='red'):
+            def find_center(bbox):
+                x0, y0 = bbox[0]
+                x1, y1 = bbox[1]
+                x2, y2 = bbox[2]
+                x3, y3 = bbox[3]
+                
+                x_center = (x0 + x1 + x2 + x3) / 4
+                y_center = (y0 + y1 + y2 + y3) / 4
+                
+                return (x_center, y_center)
+            # bbox = [[x0,y0],[x1,y1],[x2,y2],[x3,y3]]
+            draw.polygon([tuple(i) for i in bbox], outline='red')
+            font = ImageFont.load_default()
+            draw.text(find_center(bbox), text, font=font,fill="green")
+            
+            
+            
+            # draw.text((left, top), text, fill=color)
+        ###################################
         for index, (start,end) in enumerate(zip(entry_len_list[:-1],entry_len_list[1:])):
             print("*"*10)
             entry_cls_id =  pred_real_ids[start:end] 
@@ -199,7 +224,9 @@ class Ser_model(object):
             ocr_text = raw_text_list[index]
             ocr_bbox = raw_bbox_list[index]
             print(f'ocr_text:{ocr_text},ocr_bbox:{ocr_bbox},class_name:{class_name}')
-          
+            draw_bbox(draw, ocr_bbox, class_name, color='red')
+        raw_pil_img.save("output_res.jpg")
+            
         
         
         
@@ -221,7 +248,8 @@ if __name__ == "__main__":
     # step1: 模型配置相关的
     import cv2
     from PIL import Image
-    im_path = r'/mnt/disk4/projects/expore/pytorchTrain/train_data/layout/book-spine-tot-part/n0101003-07-03_15.jpg'
+    # im_path = r'/mnt/disk4/projects/expore/pytorchTrain/train_data/layout/book-spine-tot-part/n0101003-07-03_15.jpg'
+    im_path = r'train_data/layout/book-spine-tot-part/n0101003-07-03_17.jpg'
     cv_img = cv2.imread(im_path)
     pil_im = Image.open(im_path)
     # print("="*10)
