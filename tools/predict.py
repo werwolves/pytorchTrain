@@ -41,9 +41,7 @@ class Ser_model(object):
                                             tokenizer_file=None,  # avoid loading from a cached file of the pre-trained model in another machine
                                             cache_dir="./weights/layoutlmv3-base-chinese-new",
                                             use_fast=True,
-                                            add_prefix_space=True,
-                                                )
-        # self.model.load_state_dict(torch.load(weight_path))
+                                            add_prefix_space=True)
         self.model.eval()
         self.ocr_engine = RapidOCR(det_use_cuda=True, cls_use_cuda=True, rec_use_cuda=True)
         self.max_seq_length = kwargs.get("max_seq_length", 512)
@@ -55,8 +53,7 @@ class Ser_model(object):
         for index, label in enumerate(label_list):
             self.label2ids["B-" + label] = 2 * index + 1  # 1 , 3 , 5
             self.label2ids["I-" + label] = 2 * index + 2  # 2 , 4 , 6
-        print("============label2ids:::",self.label2ids)
-        self.label2ids = {'O': 0, 'B-TITLE': 1, 'I-TITLE': 2, 'B-AUTHOR': 3, 'I-AUTHOR': 4, 'B-PUBLIC': 5, 'I-PUBLIC': 6, 'B-CALL_NO': 7, 'I-CALL_NO': 8, 'B-LIB_NAME': 9, 'I-LIB_NAME': 10, 'B-OTHER-1': 11, 'I-OTHER-1': 12}
+        # self.label2ids = {'O': 0, 'B-TITLE': 1, 'I-TITLE': 2, 'B-AUTHOR': 3, 'I-AUTHOR': 4, 'B-PUBLIC': 5, 'I-PUBLIC': 6, 'B-CALL_NO': 7, 'I-CALL_NO': 8, 'B-LIB_NAME': 9, 'I-LIB_NAME': 10, 'B-OTHER-1': 11, 'I-OTHER-1': 12}
         """
         我需要一个字典：
         {
@@ -67,16 +64,10 @@ class Ser_model(object):
             4: 'AUTHOR',
             ...
         }
-        
         """
         self.ids2label = { value:key.replace('B-','').replace("I-",'')  for key, value in self.label2ids.items() }
-        print("============ids2label:::",self.ids2label)
-        
-        
-        
-        
-        
-        ############# 标签处理相关的 end ################
+        # print("============ids2label:::",self.ids2label)
+
         
         
         # self.common_transform = Compose([
@@ -113,14 +104,12 @@ class Ser_model(object):
         return [rescaled_x0, rescaled_y0, rescaled_x1, rescaled_y1] 
     
     def __call__(self, img):
-        # raw_img_w, raw_img_h = img.shape[:2]
+
         raw_img_w,raw_img_h = img.size
         raw_pil_img = img.copy()
         
         ocr_infoes = self.ocr_engine(img)[0]
-        # ocr_infoes = [[[[1187.0, 27.0], [1212.0, 26.0], [1221.0, 153.0], [1196.0, 154.0]], '上海国书馆', 0.9506524920463562], [[[154.0, 45.0], [592.0, 41.0], [593.0, 124.0], [155.0, 128.0]], '邓小平的智慧', 0.9903642435868582], [[[53.0, 57.0], [103.0, 57.0], [103.0, 91.0], [53.0, 91.0]], '特品', 0.7481847405433655], [[[680.0, 63.0], [857.0, 63.0], [857.0, 98.0], [680.0, 98.0]], '曹应旺主编', 0.9793857216835022], [[[1228.0, 67.0], [1282.0, 66.0], [1282.0, 92.0], [1228.0, 93.0]], '版社', 0.9847131073474884], [[[54.0, 87.0], [103.0, 85.0], [104.0, 117.0], [55.0, 119.0]], '文出', 0.9718954861164093]]
-        print("="*10)
-        print(ocr_infoes)
+
        
         text_ids_list = []
         bbox_list = []
@@ -161,7 +150,7 @@ class Ser_model(object):
         attention_mask_padding = [1] + attention_mask_list + [1] + [0] * difference 
         # bbox_padding = [[0,0,0,0]] + bbox + [[1000, 1000, 1000, 1000]] + [[0,0,0,0]] * difference 
         bbox_padding = [[0,0,0,0]] + bbox_list + [[0, 0, 0, 0]] + [[0,0,0,0]] * difference 
-        token_type_ids_padding = [0] + token_type_ids_list + [0] + [self.tokenizer.pad_token_type_id] * difference 
+        # token_type_ids_padding = [0] + token_type_ids_list + [0] + [self.tokenizer.pad_token_type_id] * difference 
         
         
         # for_patches, _ = self.common_transform(img, augmentation=False)
@@ -234,14 +223,7 @@ class Ser_model(object):
         
         
         
-        
-        # print("-="*10)
-        # print(f'output:{len(output)}',output)
-        # print(f'attention_mask_padding:{len(attention_mask_padding)}',attention_mask_padding)
-       
-        ###################
-        # TODO: 这里需要对 512 长度的类别做处理
-        ###################
+
         
         
 
@@ -255,15 +237,12 @@ if __name__ == "__main__":
     im_path = r'train_data/layout/book-spine-tot-part/n0101003-07-03_17.jpg'
     cv_img = cv2.imread(im_path)
     pil_im = Image.open(im_path)
-    # print("="*10)
-    # print(cv_img.shape)
     # step2: 模型加载
     weight_path = r'/mnt/disk4/projects/expore/pytorchTrain/output/ser_mv3/best_epoch_weights.pth'
     model = Ser_model(weight_path)
     
     # step3: 数据（送入）模型，处理相关的
     model(pil_im)
-    
     # step4: 模型输出后处理    
     
     
