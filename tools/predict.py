@@ -209,8 +209,11 @@ class Ser_model(object):
                 return (x_center, y_center)
             # bbox = [[x0,y0],[x1,y1],[x2,y2],[x3,y3]]
             draw.polygon([tuple(i) for i in bbox], outline='red')
-            font = ImageFont.load_default()
-            draw.text(find_center(bbox), text, font=font,fill="green")
+            # font = ImageFont.load_default()
+            font_path = "/mnt/disk4/projects/expore/pytorchTrain/fonts/simfang.ttf"
+            font_size = 20  # 设置字体大小
+            font = ImageFont.truetype(font_path, font_size)
+            draw.text(find_center(bbox), text, font=font,fill="black")
             
             
             
@@ -224,7 +227,7 @@ class Ser_model(object):
             ocr_text = raw_text_list[index]
             ocr_bbox = raw_bbox_list[index]
             print(f'ocr_text:{ocr_text},ocr_bbox:{ocr_bbox},class_name:{class_name}')
-            draw_bbox(draw, ocr_bbox, class_name, color='red')
+            draw_bbox(draw, ocr_bbox, class_name, color='black')
         raw_pil_img.save("output_res.jpg")
             
         
