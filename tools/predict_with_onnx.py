@@ -3,9 +3,7 @@ from collections import OrderedDict
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(__dir__)
 sys.path.insert(0, os.path.abspath(os.path.join(__dir__, '..')))
-
-
-
+import onnxruntime
 import torch
 import numpy as np
 from rapidocr_onnxruntime import RapidOCR
@@ -23,10 +21,15 @@ class Ser_model(object):
     """ 模型配置加载相关的 """
     def __init__(self, weight_path, **kwargs):
         # TODO: 模型加载还可以继续优化
-        config = AutoConfig.from_pretrained("microsoft/layoutlmv3-base-chinese",num_labels=13,
-                                            cache_dir="./weights/layoutlmv3-base-chinese-new")
-        self.model = AutoModelForTokenClassification.from_pretrained("microsoft/layoutlmv3-base-chinese",config=config,
-                                            cache_dir="./weights/layoutlmv3-base-chinese-new")
+        # config = AutoConfig.from_pretrained("microsoft/layoutlmv3-base-chinese",num_labels=13,
+        #                                     cache_dir="./weights/layoutlmv3-base-chinese-new")
+        # self.model = AutoModelForTokenClassification.from_pretrained("microsoft/layoutlmv3-base-chinese",config=config,
+        #                                     cache_dir="./weights/layoutlmv3-base-chinese-new")
+        
+        self.onnx_sesstion = onnxruntime.InferenceSession('test.onnx')
+        
+        
+        
         model_weight_orderdict = torch.load(weight_path)
         ordered_dict = OrderedDict()
         for key, value in model_weight_orderdict.items():
@@ -35,14 +38,14 @@ class Ser_model(object):
                     ordered_dict[new_key] = value
                 else:
                     ordered_dict[key] = value
-        self.model.load_state_dict(ordered_dict, strict=True)  # 原来 strict=False, 这意味着模型中的一些权重未被正确加载，但是不会报错，这些未初始化的权重在推理时会产生随机的输出
+        # self.model.load_state_dict(ordered_dict, strict=True)  # 原来 strict=False, 这意味着模型中的一些权重未被正确加载，但是不会报错，这些未初始化的权重在推理时会产生随机的输出
         self.tokenizer = AutoTokenizer.from_pretrained(
                                             "microsoft/layoutlmv3-base-chinese",
                                             tokenizer_file=None,  # avoid loading from a cached file of the pre-trained model in another machine
                                             cache_dir="./weights/layoutlmv3-base-chinese-new",
                                             use_fast=True,
                                             add_prefix_space=True)
-        self.model.eval()
+        # self.model.eval()
         self.ocr_engine = RapidOCR(det_use_cuda=True, cls_use_cuda=True, rec_use_cuda=True)
         self.max_seq_length = kwargs.get("max_seq_length", 512)
         
@@ -157,28 +160,14 @@ class Ser_model(object):
         for_patches= self.common_transform(img)
         img = self.patch_transform(for_patches)
         inputs = {
-            "input_ids": torch.tensor([input_ids_padding], dtype=torch.long).to(self.model.device),
-            "bbox": torch.tensor([bbox_padding], dtype=torch.long).to(self.model.device),
-            "attention_mask": torch.tensor([attention_mask_padding], dtype=torch.long).to(self.model.device),
-            "pixel_values": torch.tensor(img.unsqueeze(0), dtype=torch.float).to(self.model.device)
+            "input_ids": np.array([input_ids_padding], dtype=np.long),
+            "bbox": np.array([bbox_padding], dtype=np.long),
+            "attention_mask": np.array([attention_mask_padding]),
+            "pixel_values": np.array(img.unsqueeze(0), dtype=np.float)
         }
         ###### 增加 pytorch2onnx 的相关代码 begin ######
-        export_onnx_file = "test.onnx"
-        torch.onnx.export(
-        self.model,
-        inputs,
-        export_onnx_file,
-        #    input_names=["conv1"],  # 输入节点的节点名字
-        input_names=["input_ids","bbox","attention_mask","pixel_values"],  # 输入节点的节点名字 ---- 随便取名（与pytorch model中对应的神经元的名字无关） --- 只决定onnx模型的 输入名字
-        output_names=["logits"],     # 输出节点的节点名字 ---- 随便取名（与pytorch model中对应的神经元的名字无关） --- 只决定onnx模型的 输出名字
-        dynamic_axes={
-            "input":{0:"batch_size"},
-            "output":{0:"batch_size"}
-        }
-        )
-        print("onnx export success")
-        
-        
+
+        self.onnx_sesstion.run(None, inputs)[0]
         
         
         
