@@ -49,6 +49,36 @@ class Ser_model(object):
         self.max_seq_length = kwargs.get("max_seq_length", 512)
         
         
+        ############# 标签处理相关的 begin #############
+        label_list = ['TITLE','AUTHOR','PUBLIC','CALL_NO','LIB_NAME','OTHER-1']
+        self.label2ids = {"O": 0}
+        for index, label in enumerate(label_list):
+            self.label2ids["B-" + label] = 2 * index + 1  # 1 , 3 , 5
+            self.label2ids["I-" + label] = 2 * index + 2  # 2 , 4 , 6
+        print("============label2ids:::",self.label2ids)
+        self.label2ids = {'O': 0, 'B-TITLE': 1, 'I-TITLE': 2, 'B-AUTHOR': 3, 'I-AUTHOR': 4, 'B-PUBLIC': 5, 'I-PUBLIC': 6, 'B-CALL_NO': 7, 'I-CALL_NO': 8, 'B-LIB_NAME': 9, 'I-LIB_NAME': 10, 'B-OTHER-1': 11, 'I-OTHER-1': 12}
+        """
+        我需要一个字典：
+        {
+            0: 'O',
+            1: 'TITLE',
+            2: 'TITLE',
+            3: 'AUTHOR',
+            4: 'AUTHOR',
+            ...
+        }
+        
+        """
+        self.ids2label = { value:key.replace('B-','').replace("I-",'')  for key, value in self.label2ids.items() }
+        print("============ids2label:::",self.ids2label)
+        
+        
+        
+        
+        
+        ############# 标签处理相关的 end ################
+        
+        
         # self.common_transform = Compose([
         #     # RandomResizedCropAndInterpolationWithTwoPic(
         #     #     size=224
@@ -95,12 +125,20 @@ class Ser_model(object):
         bbox_list = []
         attention_mask_list = []
         token_type_ids_list = []
+        raw_text_list = []
+        raw_bbox_list = []
+        # 需要记录每一个实体的位置
+        entry_len_list = [0]
         for ocr_info in ocr_infoes:
             bbox, text, _ = ocr_info
+            raw_text_list.append(text)
+            raw_bbox_list.append(bbox)
             encode_res = self.tokenizer(text, truncation=True, add_special_tokens=False, return_attention_mask=True, return_token_type_ids=True)
             # --------------------------------- tokenizer ---------------------------------
             cur_text_ids = encode_res['input_ids'] 
+            
             text_ids_list.extend(cur_text_ids)
+            entry_len_list.append(len(text_ids_list))
             # --------------------------------- bbox --------------------------------------
             tem_np_box = np.array(bbox)
             left, top = min(tem_np_box[:,0]), min(tem_np_box[:,1])
@@ -116,7 +154,9 @@ class Ser_model(object):
             token_type_ids_list.extend(token_type_ids)
         # --------------------------------- padding ---------------------------------
         difference = self.max_seq_length - len(text_ids_list) - 2
+        #                                 0                            
         input_ids_padding = [self.tokenizer.cls_token_id]  + [self.tokenizer.sep_token_id] +  text_ids_list + [self.tokenizer.pad_token_id] * difference
+        #TODO:  input_ids_padding = [self.tokenizer.cls_token_id] + input_ids + [self.tokenizer.pad_token_id] * difference + [self.tokenizer.sep_token_id]
         attention_mask_padding = [1] + attention_mask_list + [1] + [0] * difference 
         # bbox_padding = [[0,0,0,0]] + bbox + [[1000, 1000, 1000, 1000]] + [[0,0,0,0]] * difference 
         bbox_padding = [[0,0,0,0]] + bbox_list + [[0, 0, 0, 0]] + [[0,0,0,0]] * difference 
@@ -139,12 +179,40 @@ class Ser_model(object):
         output = out.logits
         output = torch.argmax(output, dim=2)
         output = output[0].cpu().numpy() # [1, 512]
-        print("-="*10)
-        print(f'output:{len(output)}',output)
-        print(f'attention_mask_padding:{len(attention_mask_padding)}',attention_mask_padding)
+        real_ids_len = self.max_seq_length - difference
+        
+        pred_real_ids = output[2:real_ids_len]
+        print("="*10)
+        print(entry_len_list)
+        print(f"text_list:{raw_text_list}")
+        
+        def most_common_element(lst):
+            if not lst:
+                return None  # 如果列表为空，返回 None
+            return max(set(lst), key=lst.count)
+        
+        for index, (start,end) in enumerate(zip(entry_len_list[:-1],entry_len_list[1:])):
+            print("*"*10)
+            entry_cls_id =  pred_real_ids[start:end] 
+            print(f'entry_cls_id:{entry_cls_id}')
+            class_name = most_common_element([self.ids2label[i] for i in entry_cls_id])
+            ocr_text = raw_text_list[index]
+            ocr_bbox = raw_bbox_list[index]
+            print(f'ocr_text:{ocr_text},ocr_bbox:{ocr_bbox},class_name:{class_name}')
+          
+        
+        
+        
+        
+        
+        # print("-="*10)
+        # print(f'output:{len(output)}',output)
+        # print(f'attention_mask_padding:{len(attention_mask_padding)}',attention_mask_padding)
+       
         ###################
         # TODO: 这里需要对 512 长度的类别做处理
         ###################
+        
         
 
         

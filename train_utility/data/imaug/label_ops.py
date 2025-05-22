@@ -283,6 +283,7 @@ class LayoutEncode_zh:
         # -------------------------- 对该文档中的所有token进行拼接 begin
         difference = self.max_seq_length - len(input_ids) - 2
         input_ids_padding = [self.tokenizer.cls_token_id]  + [self.tokenizer.sep_token_id] +  input_ids + [self.tokenizer.pad_token_id] * difference
+        #TODO:  input_ids_padding = [self.tokenizer.cls_token_id] + input_ids + [self.tokenizer.pad_token_id] * difference + [self.tokenizer.sep_token_id]
         attention_mask_padding = [1] + attention_mask + [1] + [0] * difference 
         # bbox_padding = [[0,0,0,0]] + bbox + [[1000, 1000, 1000, 1000]] + [[0,0,0,0]] * difference 
         bbox_padding = [[0,0,0,0]] + bbox + [[0, 0, 0, 0]] + [[0,0,0,0]] * difference 
