@@ -1,4 +1,4 @@
-import os, sys, onnx
+import os, sys, time
 from collections import OrderedDict
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(__dir__)
@@ -8,49 +8,24 @@ import torch
 import numpy as np
 from rapidocr_onnxruntime import RapidOCR
 from transformers import AutoModelForTokenClassification, AutoConfig,AutoTokenizer
-from train_utility.data.imaug.image_utils import RandomResizedCropAndInterpolationWithTwoPic,Compose
+# from train_utility.data.imaug.image_utils import RandomResizedCropAndInterpolationWithTwoPic,Compose
 from torchvision import transforms
-import random
-# random.seed(42)
-# np.random.seed(42)
-# torch.manual_seed(42) # 这个设置好像很关键
-# torch.cuda.manual_seed_all(42)
-# torch.backends.cudnn.deterministic = True
-# torch.backends.cudnn.benchmark = False
+
 class Ser_model(object):
     """ 模型配置加载相关的 """
-    def __init__(self, weight_path, **kwargs):
-        # TODO: 模型加载还可以继续优化
-        # config = AutoConfig.from_pretrained("microsoft/layoutlmv3-base-chinese",num_labels=13,
-        #                                     cache_dir="./weights/layoutlmv3-base-chinese-new")
-        # self.model = AutoModelForTokenClassification.from_pretrained("microsoft/layoutlmv3-base-chinese",config=config,
-        #                                     cache_dir="./weights/layoutlmv3-base-chinese-new")
-        
-        
-        onnx_model_path = 'test.onnx'
+    def __init__(self, onnx_model_path, **kwargs):
+       
+
         self.onnx_session = onnxruntime.InferenceSession(onnx_model_path)
         self.input_name_l  = [i.name for i in self.onnx_session.get_inputs() ]
         self.output_name_l = [i.name for i in self.onnx_session.get_outputs()]
         
-        # model_onnx = onnx.load(onnx_model_path)
-        
-        
-        # model_weight_orderdict = torch.load(weight_path)
-        # ordered_dict = OrderedDict()
-        # for key, value in model_weight_orderdict.items():
-        #         if 'backbone' in key:
-        #             new_key = key.replace('backbone.model.', '') # new_key = key.replace('backbone.', '') 导致模型加载失败
-        #             ordered_dict[new_key] = value
-        #         else:
-        #             ordered_dict[key] = value
-        # self.model.load_state_dict(ordered_dict, strict=True)  # 原来 strict=False, 这意味着模型中的一些权重未被正确加载，但是不会报错，这些未初始化的权重在推理时会产生随机的输出
         self.tokenizer = AutoTokenizer.from_pretrained(
                                             "microsoft/layoutlmv3-base-chinese",
                                             tokenizer_file=None,  # avoid loading from a cached file of the pre-trained model in another machine
                                             cache_dir="./weights/layoutlmv3-base-chinese-new",
                                             use_fast=True,
                                             add_prefix_space=True)
-        # self.model.eval()
         self.ocr_engine = RapidOCR(det_use_cuda=True, cls_use_cuda=True, rec_use_cuda=True)
         self.max_seq_length = kwargs.get("max_seq_length", 512)
         
@@ -61,43 +36,12 @@ class Ser_model(object):
         for index, label in enumerate(label_list):
             self.label2ids["B-" + label] = 2 * index + 1  # 1 , 3 , 5
             self.label2ids["I-" + label] = 2 * index + 2  # 2 , 4 , 6
-        # self.label2ids = {'O': 0, 'B-TITLE': 1, 'I-TITLE': 2, 'B-AUTHOR': 3, 'I-AUTHOR': 4, 'B-PUBLIC': 5, 'I-PUBLIC': 6, 'B-CALL_NO': 7, 'I-CALL_NO': 8, 'B-LIB_NAME': 9, 'I-LIB_NAME': 10, 'B-OTHER-1': 11, 'I-OTHER-1': 12}
-        """
-        我需要一个字典：
-        {
-            0: 'O',
-            1: 'TITLE',
-            2: 'TITLE',
-            3: 'AUTHOR',
-            4: 'AUTHOR',
-            ...
-        }
-        """
         self.ids2label = { value:key.replace('B-','').replace("I-",'')  for key, value in self.label2ids.items() }
-        # print("============ids2label:::",self.ids2label)
-
-        
-        
-        # self.common_transform = Compose([
-        #     # RandomResizedCropAndInterpolationWithTwoPic(
-        #     #     size=224
-        #     # ),
-            
-        #     transforms.Resize((224, 224), interpolation=transforms.InterpolationMode.BILINEAR),
-        # ])
-        
-        
-        self.common_transform = transforms.Compose([
-            
+        self.common_transform = transforms.Compose([     
             transforms.Resize((224, 224), interpolation=transforms.InterpolationMode.BILINEAR),
         ])
-        
-        
-        
-
         self.patch_transform = transforms.Compose([
             transforms.ToTensor(),
-            
             transforms.Normalize(
                 mean=torch.tensor((0.5, 0.5, 0.5)),
                 std=torch.tensor((0.5, 0.5, 0.5)))
@@ -171,22 +115,12 @@ class Ser_model(object):
             "pixel_values": np.array(img.unsqueeze(0), dtype=np.float32)
         }
         ###### 增加 pytorch2onnx 的相关代码 begin ######
-
+        t0 = time.time()
         output = self.onnx_session.run(self.output_name_l, inputs)[0]
-        
-        
-        
-        
-        ###### 增加 pytorch2onnx 的相关代码 end #########
-        # with torch.no_grad():
-        #     out = self.model(
-        #         **inputs
-        #     )
-        # output = None #out.logits
+        print(f"onnx run time:=========> {time.time()-t0}")
         output = np.argmax(output, axis=2)
         output = output[0] # .cpu().numpy() # [1, 512]
         real_ids_len = self.max_seq_length - difference
-        
         pred_real_ids = output[2:real_ids_len]
         print("="*10)
         print(entry_len_list)
@@ -212,17 +146,11 @@ class Ser_model(object):
                 y_center = (y0 + y1 + y2 + y3) / 4
                 
                 return (x_center, y_center)
-            # bbox = [[x0,y0],[x1,y1],[x2,y2],[x3,y3]]
             draw.polygon([tuple(i) for i in bbox], outline='red')
-            # font = ImageFont.load_default()
             font_path = "/mnt/disk4/projects/expore/pytorchTrain/fonts/simfang.ttf"
             font_size = 20  # 设置字体大小
             font = ImageFont.truetype(font_path, font_size)
             draw.text(find_center(bbox), text, font=font,fill="black")
-            
-            
-            
-            # draw.text((left, top), text, fill=color)
         ###################################
         for index, (start,end) in enumerate(zip(entry_len_list[:-1],entry_len_list[1:])):
             print("*"*10)
@@ -235,15 +163,7 @@ class Ser_model(object):
             draw_bbox(draw, ocr_bbox, class_name, color='black')
         raw_pil_img.save("output_res.jpg")
             
-        
-        
-        
-        
-
-        
-        
-
-        
+   
 
 if __name__ == "__main__":
     # step1: 模型配置相关的
@@ -254,7 +174,7 @@ if __name__ == "__main__":
     cv_img = cv2.imread(im_path)
     pil_im = Image.open(im_path)
     # step2: 模型加载
-    weight_path = r'/mnt/disk4/projects/expore/pytorchTrain/output/ser_mv3/best_epoch_weights.pth'
+    weight_path = r'/mnt/disk4/projects/expore/pytorchTrain/test.onnx'
     model = Ser_model(weight_path)
     
     # step3: 数据（送入）模型，处理相关的
