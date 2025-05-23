@@ -11,5 +11,6 @@ train_data/layout/*
 
 weights/*
 *.log
+*.onnx
 
 
