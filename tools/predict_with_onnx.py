@@ -1,4 +1,4 @@
-import os,sys
+import os, sys, onnx
 from collections import OrderedDict
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(__dir__)
@@ -26,18 +26,23 @@ class Ser_model(object):
         # self.model = AutoModelForTokenClassification.from_pretrained("microsoft/layoutlmv3-base-chinese",config=config,
         #                                     cache_dir="./weights/layoutlmv3-base-chinese-new")
         
-        self.onnx_sesstion = onnxruntime.InferenceSession('test.onnx')
+        
+        onnx_model_path = 'test.onnx'
+        self.onnx_session = onnxruntime.InferenceSession(onnx_model_path)
+        self.input_name_l  = [i.name for i in self.onnx_session.get_inputs() ]
+        self.output_name_l = [i.name for i in self.onnx_session.get_outputs()]
+        
+        # model_onnx = onnx.load(onnx_model_path)
         
         
-        
-        model_weight_orderdict = torch.load(weight_path)
-        ordered_dict = OrderedDict()
-        for key, value in model_weight_orderdict.items():
-                if 'backbone' in key:
-                    new_key = key.replace('backbone.model.', '') # new_key = key.replace('backbone.', '') 导致模型加载失败
-                    ordered_dict[new_key] = value
-                else:
-                    ordered_dict[key] = value
+        # model_weight_orderdict = torch.load(weight_path)
+        # ordered_dict = OrderedDict()
+        # for key, value in model_weight_orderdict.items():
+        #         if 'backbone' in key:
+        #             new_key = key.replace('backbone.model.', '') # new_key = key.replace('backbone.', '') 导致模型加载失败
+        #             ordered_dict[new_key] = value
+        #         else:
+        #             ordered_dict[key] = value
         # self.model.load_state_dict(ordered_dict, strict=True)  # 原来 strict=False, 这意味着模型中的一些权重未被正确加载，但是不会报错，这些未初始化的权重在推理时会产生随机的输出
         self.tokenizer = AutoTokenizer.from_pretrained(
                                             "microsoft/layoutlmv3-base-chinese",
@@ -160,26 +165,26 @@ class Ser_model(object):
         for_patches= self.common_transform(img)
         img = self.patch_transform(for_patches)
         inputs = {
-            "input_ids": np.array([input_ids_padding], dtype=np.long),
-            "bbox": np.array([bbox_padding], dtype=np.long),
-            "attention_mask": np.array([attention_mask_padding]),
-            "pixel_values": np.array(img.unsqueeze(0), dtype=np.float)
+            "input_ids": np.array([input_ids_padding], dtype=np.int64),
+            "bbox": np.array([bbox_padding], dtype=np.int64),
+            "attention_mask": np.array([attention_mask_padding],dtype=np.int64),
+            "pixel_values": np.array(img.unsqueeze(0), dtype=np.float32)
         }
         ###### 增加 pytorch2onnx 的相关代码 begin ######
 
-        self.onnx_sesstion.run(None, inputs)[0]
+        output = self.onnx_session.run(self.output_name_l, inputs)[0]
         
         
         
         
         ###### 增加 pytorch2onnx 的相关代码 end #########
-        with torch.no_grad():
-            out = self.model(
-                **inputs
-            )
-        output = out.logits
-        output = torch.argmax(output, dim=2)
-        output = output[0].cpu().numpy() # [1, 512]
+        # with torch.no_grad():
+        #     out = self.model(
+        #         **inputs
+        #     )
+        # output = None #out.logits
+        output = np.argmax(output, axis=2)
+        output = output[0] # .cpu().numpy() # [1, 512]
         real_ids_len = self.max_seq_length - difference
         
         pred_real_ids = output[2:real_ids_len]
