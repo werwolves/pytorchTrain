@@ -33,7 +33,18 @@ class LayoutfLowEmbedding(nn.Module):
         self.w_positon_embedding = nn.Embedding(self.max_2d_positon_embedding, self.pos2d_dim)
 
 
-    def forward(self, input_ids,bbox):
+        # 图像部分的嵌入层
+        self.patch_size = kwargs.get("patch_size", 16)
+        self.img_projection = nn.Conv2d(3, self.hidden_dim, kernel_size=self.patch_size, stride=self.patch_size)
+
+    def forward(self, input_ids,bbox, img):
+        """
+        这里默认 img.shape = [batch_size, 3, img_size=224, img_size=224]
+        """
+        img = self.img_projection(img) # [batch_size, hidden_dim, img_size/patch_size, img_size/patch_size]
+        img_embedding = img.flatten(2).permute(0, 2, 1) # img.shape = [batch_size, num_patches, hidden_dim]
+        
+
         # token 嵌入
         # =========> input_ids_embedding.shape  = [batch_size, sequence_length, hidden_dim]
         input_ids_embedding = self.text_ids_embedding(input_ids)
@@ -64,24 +75,12 @@ class LayoutfLowEmbedding(nn.Module):
         
         # 最终的嵌入结果
         # ===========> embedding.shape = [batch_size, sequence_length, hidden_dim]
-        embedding = input_ids_embedding + input_ids_pos_embedding + pos2d_embeding
+        embedding = input_ids_embedding + input_ids_pos_embedding + pos2d_embeding 
+        
+        text_bbox_img = torch.cat([embedding, img_embedding], dim=1) # [batch_size, sequence_length + num_patches, hidden_dim]
 
-        return embedding
+        return text_bbox_img
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        return x
 
 
 
@@ -102,7 +101,7 @@ class LayoutfLowEmbedding(nn.Module):
 class LayoutFlow(nn.Module):    
     def __init__(self, **kwargs):
         super().__init__()
-        
+        self.embedding = LayoutfLowEmbedding()
         
   
         
@@ -112,9 +111,14 @@ class LayoutFlow(nn.Module):
         text_ids = x["input_ids"]
         text_mask = x["attention_mask"]
         text_bbox = x["bbox"]
-        image = x["image"]
+        image = x["image"] # [batch_size, 3, img_size=224, img_size=224]
         labels = x["labels"]
         # 数据处理（成为可以送入模型的数据格式）
+        mix_img = self.embedding(text_ids, text_bbox, image)
+        
+        
+        
+        
         
         
         
