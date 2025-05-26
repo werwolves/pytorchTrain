@@ -20,7 +20,7 @@ class LayoutfLowEmbedding(nn.Module):
         self.register_buffer("text_position", text_position)
         
         self.padding_idx = kwargs.get("padding_idx", 0)
-        self.text_position_embedding = nn.Embedding(self.sequence_len, kwargs.get("hidden_size", 768), padding_idx=self.padding_idx)
+        self.text_position_embedding = nn.Embedding(self.sequence_len+1, kwargs.get("hidden_size", 768), padding_idx=self.padding_idx)
         
         # bbox 部分的嵌入层
         
@@ -47,12 +47,12 @@ class LayoutfLowEmbedding(nn.Module):
 
         # token 嵌入
         # =========> input_ids_embedding.shape  = [batch_size, sequence_length, hidden_dim]
-        input_ids_embedding = self.text_ids_embedding(input_ids)
+        input_ids_embedding = self.text_ids_embedding(input_ids) # [batch_size, sequence_length, hidden_dim]
         
         # token 位置 嵌入
         input_mask = input_ids.ne(self.padding_idx).int()
         input_ids_pos = torch.cumsum(input_mask, dim=1) * input_mask
-        # =========> input_ids_pos_embedding.shape  = [batch_size, sequence_length, hidden_dim]
+        # =========> input_ids_pos_embedding.shape  = [batch_size , sequence_length, hidden_dim]
         input_ids_pos_embedding = self.text_position_embedding(input_ids_pos)
         
         # bbox 嵌入
@@ -60,10 +60,10 @@ class LayoutfLowEmbedding(nn.Module):
         bbox_top = bbox[:, :, 1]
         bbox_right = bbox[:, :, 2]
         bbox_bottom = bbox[:, :, 3]
-        bbox_height = bbox_bottom - bbox_top
-        bbox_width = bbox_right - bbox_left
+        bbox_height = torch.clip(bbox_bottom - bbox_top, 1, self.max_2d_positon_embedding-1)
+        bbox_width = torch.clip(bbox_right - bbox_left, 1, self.max_2d_positon_embedding-1)
         
-        bbox_left_embedding = self.x_positon_embedding(bbox_left) # [batch_size, sequence_length, pos2d_dim]
+        bbox_left_embedding = self.x_positon_embedding(bbox_left)# [batch_size, sequence_length, pos2d_dim]
         bbox_top_embedding = self.y_positon_embedding(bbox_top)
         bbox_right_embedding = self.x_positon_embedding(bbox_right)
         bbox_bottom_embedding = self.y_positon_embedding(bbox_bottom)
@@ -71,7 +71,7 @@ class LayoutfLowEmbedding(nn.Module):
         bbox_width_embedding = self.w_positon_embedding(bbox_width)
         
         # ===========> pos2d_embeding.shape = [batch_size, sequence_length, pos2d_dim*6=hidden_dim]
-        pos2d_embeding = torch.cat([bbox_left_embedding, bbox_top_embedding, bbox_right_embedding, bbox_bottom_embedding,bbox_height_embedding, bbox_width_embedding], dim=1) 
+        pos2d_embeding = torch.cat([bbox_left_embedding, bbox_top_embedding, bbox_right_embedding, bbox_bottom_embedding,bbox_height_embedding, bbox_width_embedding], dim=-1) 
         
         # 最终的嵌入结果
         # ===========> embedding.shape = [batch_size, sequence_length, hidden_dim]
