@@ -121,6 +121,17 @@ class LayoutFlow(nn.Module):
         out = self.model(mix_img)
         print(out.shape)
         
+if __name__ == "__main__":
+    model = LayoutFlow()
+    x = {
+        "input_ids": torch.randint(0, 30522, (2, 512)),
+        "attention_mask": torch.ones((2, 512)),
+        "bbox": torch.randint(0, 1024, (2, 512, 4)),
+        "image": torch.randn((2, 3, 224, 224)),
+        "labels": torch.randint(0, 2, (2, 512))
+    }
+    model(x)
+        
         
         
         
