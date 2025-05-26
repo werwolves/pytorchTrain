@@ -102,7 +102,10 @@ class LayoutFlow(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
         self.embedding = LayoutfLowEmbedding()
-        
+        self.model =nn.TransformerEncoder(
+            nn.TransformerEncoderLayer(d_model=kwargs.get("hidden_size", 768), nhead=kwargs.get("num_attention_heads", 12)),
+            num_layers=kwargs.get("num_hidden_layers", 12)
+        )
   
         
         
@@ -115,7 +118,8 @@ class LayoutFlow(nn.Module):
         labels = x["labels"]
         # 数据处理（成为可以送入模型的数据格式）
         mix_img = self.embedding(text_ids, text_bbox, image)
-        
+        out = self.model(mix_img)
+        print(out.shape)
         
         
         
