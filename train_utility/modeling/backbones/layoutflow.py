@@ -10,6 +10,8 @@ class LayoutfLowEmbedding(nn.Module):
         
         self.hidden_dim = kwargs.get("hidden_size", 768)
         
+        self.cls_token = nn.Parameter(torch.zeros(1, 1, self.hidden_dim))
+        
         # 文字部分的 token id 嵌入层
         self.text_ids_embedding = nn.Embedding(kwargs.get("vocab_size", 30522), self.hidden_dim)
         
@@ -84,8 +86,14 @@ class LayoutfLowEmbedding(nn.Module):
         # 最终的嵌入结果
         # ===========> embedding.shape = [batch_size, sequence_length, hidden_dim]
         embedding = input_ids_embedding + input_ids_pos_embedding + pos2d_embeding 
+        # embedding.shape= torch.Size([2, 512, 768]),,,,,, img_embedding.shape=torch.Size([2, 196, 768])
+        batch_size = embedding.shape[0]
+        cls_token = self.cls_token.expand(batch_size, -1, -1)
         
-        text_bbox_img = torch.cat([embedding, img_embedding], dim=1) # [batch_size, sequence_length + num_patches, hidden_dim]
+        text_bbox_img = torch.cat([cls_token, embedding, img_embedding], dim=1) # [batch_size=2, sequence_length + num_patches=708+1, hidden_dim=768]
+        
+        
+        
         
         embeddings = self.LayerNorm(text_bbox_img)
         embeddings = self.dropout(embeddings)
@@ -120,7 +128,7 @@ class LayoutFlow(nn.Module):
         # 数据处理（成为可以送入模型的数据格式）
         mix_img = self.embedding(text_ids, text_bbox, image)
         out = self.model(mix_img)
-        out = self.classifier(out[:, -1, :])  # 取最后一个位置的输出作为分类结果
+        out = self.classifier(out[:, 0, :])  # 取第一个位置的输出作为分类结果
         return out
         
         
