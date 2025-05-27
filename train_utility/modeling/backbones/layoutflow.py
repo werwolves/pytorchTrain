@@ -16,7 +16,7 @@ class LayoutfLowEmbedding(nn.Module):
         # 文字部分 token 一维嵌入层
         self.sequence_len = kwargs.get("max_sequence_length", 512)
         
-        text_position = torch.range(0, self.sequence_len, dtype=torch.long).view(1, -1)
+        text_position = torch.arange(0, self.sequence_len, dtype=torch.long).view(1, -1)
         self.register_buffer("text_position", text_position)
         
         self.padding_idx = kwargs.get("padding_idx", 0)
@@ -36,6 +36,14 @@ class LayoutfLowEmbedding(nn.Module):
         # 图像部分的嵌入层
         self.patch_size = kwargs.get("patch_size", 16)
         self.img_projection = nn.Conv2d(3, self.hidden_dim, kernel_size=self.patch_size, stride=self.patch_size)
+
+
+        self.LayerNorm = nn.LayerNorm(self.hidden_dim)
+        self.dropout = nn.Dropout()
+
+
+
+
 
     def forward(self, input_ids,bbox, img):
         """
@@ -78,22 +86,10 @@ class LayoutfLowEmbedding(nn.Module):
         embedding = input_ids_embedding + input_ids_pos_embedding + pos2d_embeding 
         
         text_bbox_img = torch.cat([embedding, img_embedding], dim=1) # [batch_size, sequence_length + num_patches, hidden_dim]
-
-        return text_bbox_img
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        
+        embeddings = self.LayerNorm(text_bbox_img)
+        embeddings = self.dropout(embeddings)
+        return embeddings
 
 
 
@@ -102,13 +98,18 @@ class LayoutFlow(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
         self.embedding = LayoutfLowEmbedding()
+        self.d_model = kwargs.get("hidden_size", 768)
+        self.num_attention_heads = kwargs.get("num_attention_heads", 12)
+        self.num_layers = kwargs.get("num_hidden_layers", 12)
+        
+        self.num_classes = kwargs.get("num_classes", 13)
         self.model =nn.TransformerEncoder(
-            nn.TransformerEncoderLayer(d_model=kwargs.get("hidden_size", 768), nhead=kwargs.get("num_attention_heads", 12)),
-            num_layers=kwargs.get("num_hidden_layers", 12)
+            nn.TransformerEncoderLayer(d_model=self.d_model, nhead=self.num_attention_heads),
+            num_layers=self.num_layers
         )
-  
+        self.classifier = nn.Linear(self.d_model, self.num_classes)
         
-        
+
     def forward(self, x):
         # 送入模型前待处理的数据
         text_ids = x["input_ids"]
@@ -119,7 +120,10 @@ class LayoutFlow(nn.Module):
         # 数据处理（成为可以送入模型的数据格式）
         mix_img = self.embedding(text_ids, text_bbox, image)
         out = self.model(mix_img)
-        print(out.shape)
+        out = self.classifier(out[:, -1, :])  # 取最后一个位置的输出作为分类结果
+        return out
+        
+        
         
 if __name__ == "__main__":
     model = LayoutFlow()
@@ -130,7 +134,8 @@ if __name__ == "__main__":
         "image": torch.randn((2, 3, 224, 224)),
         "labels": torch.randint(0, 2, (2, 512))
     }
-    model(x)
+    out = model(x)
+    print(out.shape)  # 应该是 [2, 512, 768]，即 [batch_size, sequence_length + num_patches, hidden_dim]
         
         
         
