@@ -363,3 +363,142 @@ class LayoutEncode_zh:
         # data["classes"] = torch.tensor([classes_list], dtype=torch.long)
         
         return data
+    
+
+
+
+
+
+# ---------------------------------------- 想实现文档分类的逻辑 --------------------------------------------   
+# ------------------------------------------------ 暂时放在这里，等后续完善代码处理
+class DocClassificationDataset(Dataset):
+    def __init__(self, args, tokenizer, mode):
+        self.args = args
+        self.mode = mode
+        self.cur_la = args.language
+        self.tokenizer = tokenizer
+        
+        # 图像处理保持不变
+        self.common_transform = Compose([
+            RandomResizedCropAndInterpolationWithTwoPic(
+                size=args.input_size, interpolation=args.train_interpolation,
+            ),
+        ])
+        
+        self.patch_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=torch.tensor((0.5, 0.5, 0.5)),
+                std=torch.tensor((0.5, 0.5, 0.5)))
+        ])
+
+        # 加载文档分类数据
+        data_file = json.load(
+            open(os.path.join(args.data_dir, "{}.{}.json".format(self.cur_la, 'train' if mode == 'train' else 'val')), 'r'))
+        
+        # 不使用NER标签，而是使用文档级别的标签
+        self.feature = self.load_classification_data(data_file)
+
+    def load_classification_data(self, data_file):
+        total_data = {"id": [], "lines": [], "bboxes": [], "labels": [], "image_path": []}
+        
+        for i in range(len(data_file['documents'])):
+            width, height = data_file['documents'][i]['img']['width'], data_file['documents'][i]['img']['height']
+            
+            # 提取文档内容
+            cur_doc_lines, cur_doc_bboxes = [], []
+            for j in range(len(data_file['documents'][i]['document'])):
+                cur_item = data_file['documents'][i]['document'][j]
+                cur_doc_lines.append(cur_item['text'])
+                cur_doc_bboxes.append(self.box_norm(cur_item['box'], width=width, height=height))
+            
+            # 添加文档级标签（不是token级标签）
+            doc_label = data_file['documents'][i]['doc_label']  # 假设有文档级标签
+            # 或从其他地方获取文档类别
+            
+            total_data['id'].append(len(total_data['id']))
+            total_data['lines'].append(cur_doc_lines)
+            total_data['bboxes'].append(cur_doc_bboxes)
+            total_data['labels'].append(doc_label)  # 整个文档的类别标签
+            total_data['image_path'].append(data_file['documents'][i]['img']['fname'])
+
+        # 继续使用相同的token化逻辑，但不处理token级标签
+        total_input_ids, total_bboxs = [], []
+        doc_labels = []  # 存储文档级标签
+        
+        for i in range(len(total_data['lines'])):
+            cur_doc_input_ids, cur_doc_bboxs = [], []
+            
+            for j in range(len(total_data['lines'][i])):
+                cur_input_ids = self.tokenizer(
+                    total_data['lines'][i][j], 
+                    truncation=False, 
+                    add_special_tokens=False, 
+                    return_attention_mask=False
+                )['input_ids']
+                
+                if len(cur_input_ids) == 0: 
+                    continue
+                    
+                cur_doc_input_ids += cur_input_ids
+                cur_doc_bboxs += [total_data['bboxes'][i][j]] * len(cur_input_ids)
+            
+            total_input_ids.append(cur_doc_input_ids)
+            total_bboxs.append(cur_doc_bboxs)
+            doc_labels.append(total_data['labels'][i])  # 文档级标签
+
+        # 分割长文档，但保持文档标签不变
+        input_ids, bboxs, labels = [], [], []
+        segment_ids, position_ids = [], []
+        image_path = []
+        
+        for i in range(len(total_input_ids)):
+            start = 0
+            while start < len(total_input_ids[i]):
+                end = min(start + 510, len(total_input_ids[i]))
+                
+                input_ids.append([self.tokenizer.cls_token_id] + total_input_ids[i][start:end] + [self.tokenizer.sep_token_id])
+                bboxs.append([[0, 0, 0, 0]] + total_bboxs[i][start:end] + [[1000, 1000, 1000, 1000]])
+                # 对于分类任务，我们仍然保留-100用于CLS/SEP位置，但标签将在模型层面处理
+                labels.append(doc_labels[i])  # 整个文档的标签
+                
+                cur_segment_ids = self.get_segment_ids(bboxs[-1])
+                cur_position_ids = self.get_position_ids(cur_segment_ids)
+                segment_ids.append(cur_segment_ids)
+                position_ids.append(cur_position_ids)
+                image_path.append(os.path.join(self.args.data_dir, "images", total_data['image_path'][i]))
+                
+                start = end
+
+        return {
+            'input_ids': input_ids,
+            'bbox': bboxs,
+            'labels': labels,  # 现在是文档级标签
+            'segment_ids': segment_ids,
+            'position_ids': position_ids,
+            'image_path': image_path,
+        }
+
+    def __getitem__(self, index):
+        # 与原代码相同，但标签现在是文档级的
+        input_ids = self.feature["input_ids"][index]
+        attention_mask = [1] * len(input_ids)
+        doc_label = self.feature["labels"][index]  # 文档级标签
+        bbox = self.feature["bbox"][index]
+        segment_ids = self.feature['segment_ids'][index]
+        position_ids = self.feature['position_ids'][index]
+
+        img = pil_loader(self.feature['image_path'][index])
+        for_patches, _ = self.common_transform(img, augmentation=False)
+        patch = self.patch_transform(for_patches)
+
+        res = {
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
+            "labels": doc_label,  # 单个文档标签
+            "bbox": bbox,
+            "segment_ids": segment_ids,
+            "position_ids": position_ids,
+            "images": patch,
+        }
+        return res
