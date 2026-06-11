@@ -179,12 +179,12 @@ class SimpleDataSet_cls(Dataset):
         # print("data_info: ", data_info)
         # res = data_info.strip('\n').split('\t')
         # print(f"rec:{res}")
-        # 图像名字， 标签信息，  券商名称， 缴费方向
-        file_name, label_info, sec_name_info, pay_dir = data_info.strip('\n').split('\t')
+        # 图像名字，  ocr标签结果，       券商名称，   缴费方向
+        file_name,   label_info,   sec_name_info,   pay_dir  =  data_info.strip('\n').split('\t')
         label_info = json.loads(label_info)
         img_path = os.path.join(self.data_dir, file_name)
         assert os.path.exists(img_path), f"Image path {img_path} does not exist!"
-        data = {'img_path': img_path, 'label': label_info}
+        data = {'img_path': img_path, 'label': label_info, "quanshang_name": sec_name_info, "pay_dir": pay_dir}
         
         # 为防止图像的路径中含有中文字符
         with open(img_path, 'rb') as f:

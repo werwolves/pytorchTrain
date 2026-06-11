@@ -484,7 +484,11 @@ class Layout_Seq_Encode_zh:
         
         # im, words, boxes = data['image'], data['words'], data['boxes']
         data_labels = data['label']
-        
+        # ------------------ 新增了以下信息 ---------------------# 
+        # data["quanshang_name"]
+        # data["pay_dir"]
+        # ------------------------------------------------------#
+
         attention_mask = []
         token_type_ids = []
         input_ids = []
@@ -577,7 +581,7 @@ class Layout_Seq_Encode_zh:
             input_ids.extend(cur_text_ids)
             token_type_ids.extend(encode_res["token_type_ids"])
             bbox.extend(cur_text_box)
-            labels.extend(cur_text_label)
+        
         # -------------------------- 对该文档中的所有token进行拼接 begin
         difference = self.max_seq_length - len(input_ids) - 2
         input_ids_padding = [self.tokenizer.cls_token_id]  + [self.tokenizer.sep_token_id] +  input_ids + [self.tokenizer.pad_token_id] * difference
@@ -607,6 +611,8 @@ class Layout_Seq_Encode_zh:
         # data["image"] = data["image"][None, :, :, :]  # 这里是为了将数据转换为 [1,3,224,224] 的格式
         for key in data:
             if key in [
+                        "quanshang_name", # 券商名称
+                        "pay_dir",        # 银证转账方向
                         "input_ids",
                         "labels",
                         "token_type_ids",
