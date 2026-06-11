@@ -8,7 +8,7 @@ Global:
 
 Architecture:
   Backbone: 
-    name: LayoutLMV3_zh # ResNet18 #ResNet # MobileNetV3
+    name: LayoutLMV3_seq_zh  # LayoutLMV3_zh # ResNet18 #ResNet # MobileNetV3
     num_labels: 13
     # model_name: small
     # scale: 0.35
@@ -82,7 +82,7 @@ Eval:
       - DecodeImage: # load image
           img_mode: BGR
           channel_first: False
-      - LayoutEncode_zh: # Class handling label
+      - Layout_Seq_Encode_zh: # LayoutEncode_zh: # Class handling label
           label_list: *label_list 
           max_seq_len: 512
       # - ClsResizeImg:
