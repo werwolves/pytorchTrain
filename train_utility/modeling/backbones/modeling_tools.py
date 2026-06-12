@@ -30,7 +30,8 @@ class LayoutLMv3ForSequenceClassification(LayoutLMv3PreTrainedModel):
         self.num_labels = config.num_labels
         self.config = config
         self.layoutlmv3 = LayoutLMv3Model(config)
-        self.classifier = LayoutLMv3ClassificationHead(config, pool_feature=False)
+        self.classifier1 = LayoutLMv3ClassificationHead(config, pool_feature=False)
+        self.classifier2 = LayoutLMv3ClassificationHead(config, pool_feature=False)
         self.post_init()
 
     def get_input_embeddings(self):
@@ -48,7 +49,10 @@ class LayoutLMv3ForSequenceClassification(LayoutLMv3PreTrainedModel):
         token_type_ids: torch.LongTensor | None = None,
         position_ids: torch.LongTensor | None = None,
         inputs_embeds: torch.FloatTensor | None = None,
-        labels: torch.LongTensor | None = None,
+        # labels: torch.LongTensor | None = None,
+        labels_task1: torch.LongTensor | None = None,  # 第一个任务的标签
+        labels_task2: torch.LongTensor | None = None,  # 第二个任务的标签
+
         bbox: torch.LongTensor | None = None,
         pixel_values: torch.LongTensor | None = None,
         **kwargs: Unpack[TransformersKwargs],
@@ -95,37 +99,87 @@ class LayoutLMv3ForSequenceClassification(LayoutLMv3PreTrainedModel):
         )
 
         sequence_output = outputs[0][:, 0, :]
-        logits = self.classifier(sequence_output)
+        # logits = self.classifier(sequence_output)
+        logits_task1 = self.classifier_task1(sequence_output)
+        logits_task2 = self.classifier_task2(sequence_output)
 
-        loss = None
-        if labels is not None:
-            if self.config.problem_type is None:
-                if self.num_labels == 1:
-                    self.config.problem_type = "regression"
-                elif self.num_labels > 1 and (labels.dtype == torch.long or labels.dtype == torch.int):
-                    self.config.problem_type = "single_label_classification"
-                else:
-                    self.config.problem_type = "multi_label_classification"
+        tot_loss = None
 
-            if self.config.problem_type == "regression":
-                loss_fct = MSELoss()
-                if self.num_labels == 1:
-                    loss = loss_fct(logits.squeeze(), labels.squeeze())
-                else:
-                    loss = loss_fct(logits, labels)
-            elif self.config.problem_type == "single_label_classification":
-                loss_fct = CrossEntropyLoss()
-                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
-            elif self.config.problem_type == "multi_label_classification":
-                loss_fct = BCEWithLogitsLoss()
+        loss_task1 = self._compute_loss(logits_task1, labels_task1, self.num_labels_task1)
+        loss_task2 = self._compute_loss(logits_task2, labels_task2, self.num_labels_task2)
+        total_loss = loss_task1 + loss_task2  #
+
+        return {
+            'loss': total_loss,
+            'logits_task1': logits_task1,
+            'logits_task2': logits_task2,
+            'hidden_states': outputs.hidden_states,
+            'attentions': outputs.attentions,
+        }
+
+    def _compute_loss(self, logits, labels, num_labels):
+        """辅助方法计算单个任务的损失"""
+        if self.config.problem_type is None:
+            if num_labels == 1:
+                problem_type = "regression"
+            elif num_labels > 1 and (labels.dtype == torch.long or labels.dtype == torch.int):
+                problem_type = "single_label_classification"
+            else:
+                problem_type = "multi_label_classification"
+        else:
+            problem_type = self.config.problem_type
+
+        if problem_type == "regression":
+            loss_fct = MSELoss()
+            if num_labels == 1:
+                loss = loss_fct(logits.squeeze(), labels.squeeze())
+            else:
                 loss = loss_fct(logits, labels)
+        elif problem_type == "single_label_classification":
+            loss_fct = CrossEntropyLoss()
+            loss = loss_fct(logits.view(-1, num_labels), labels.view(-1))
+        elif problem_type == "multi_label_classification":
+            loss_fct = BCEWithLogitsLoss()
+            loss = loss_fct(logits, labels)
+        
+        return loss
 
-        return SequenceClassifierOutput(
-            loss=loss,
-            logits=logits,
-            hidden_states=outputs.hidden_states,
-            attentions=outputs.attentions,
-        )
+
+
+
+
+
+
+
+        # loss = None
+        # if labels is not None:
+        #     if self.config.problem_type is None:
+        #         if self.num_labels == 1:
+        #             self.config.problem_type = "regression"
+        #         elif self.num_labels > 1 and (labels.dtype == torch.long or labels.dtype == torch.int):
+        #             self.config.problem_type = "single_label_classification"
+        #         else:
+        #             self.config.problem_type = "multi_label_classification"
+
+        #     if self.config.problem_type == "regression":
+        #         loss_fct = MSELoss()
+        #         if self.num_labels == 1:
+        #             loss = loss_fct(logits.squeeze(), labels.squeeze())
+        #         else:
+        #             loss = loss_fct(logits, labels)
+        #     elif self.config.problem_type == "single_label_classification":
+        #         loss_fct = CrossEntropyLoss()
+        #         loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+        #     elif self.config.problem_type == "multi_label_classification":
+        #         loss_fct = BCEWithLogitsLoss()
+        #         loss = loss_fct(logits, labels)
+
+        # return SequenceClassifierOutput(
+        #     loss=loss,
+        #     logits=logits,
+        #     hidden_states=outputs.hidden_states,
+        #     attentions=outputs.attentions,
+        # )
 
 
 
