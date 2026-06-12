@@ -1,6 +1,7 @@
 import torch.nn as nn
 from transformers import LayoutLMv3Config, LayoutLMv3ForTokenClassification, AutoModelForTokenClassification, AutoConfig
-from transformers import LayoutLMv3ForSequenceClassification
+# from transformers import LayoutLMv3ForSequenceClassification
+from .modeling_tools import LayoutLMv3ForSequenceClassification
 
 class LayoutLMV3_ous(nn.Module):
     def __init__(self, **kwargs):
