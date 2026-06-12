@@ -37,6 +37,15 @@ class LayoutLMV3_zh(nn.Module):
         return outputs
     
 class LayoutLMV3_seq_zh(nn.Module):
+    """
+    基于LayoutLMv3的中文序列分类模型
+
+    使用预训练的中文LayoutLMv3模型进行文档级别的序列分类任务
+
+    Args:
+        **kwargs: 可变关键字参数
+            - num_labels: 分类标签数量，默认为2
+    """
     def __init__(self, **kwargs):
         super().__init__()
         config = AutoConfig.from_pretrained("microsoft/layoutlmv3-base-chinese",num_labels=kwargs.get("num_labels", 2),
